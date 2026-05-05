@@ -12,6 +12,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="mobile.css">
 </head>
 
 <body>
@@ -38,6 +39,9 @@
                     </div>
                     <button class="btn-login" onclick="app.showPage('login')">Login</button>
                     <button class="btn-open-account" onclick="app.showPage('open-account')">Open Account</button>
+                    <button class="mobile-menu-btn" id="landing-menu-btn" onclick="toggleMobileNav()" aria-label="Menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
                 </div>
             </div>
         </nav>
@@ -492,8 +496,10 @@
 
     <!-- ========== CUSTOMER DASHBOARD ========== -->
     <div id="page-customer-dash" class="dashboard-page hidden">
-        <aside class="cust-sidebar">
-            <div class="cust-brand" onclick="app.showPage('landing')">Nexa<span>Bank</span></div>
+        <!-- Sidebar overlay for mobile -->
+        <div class="sidebar-overlay" id="cust-sidebar-overlay" onclick="closeCustSidebar()"></div>
+        <aside class="cust-sidebar" id="cust-sidebar">
+            <div class="cust-brand" onclick="app.showPage('landing')">Vault<span>Edge</span></div>
             <nav class="cust-sidebar-nav" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">
                 <div class="cust-nav-group">
                     <span class="cust-nav-label">MAIN</span>
@@ -538,11 +544,16 @@
         </aside>
         <div class="cust-body">
             <header class="cust-topbar">
-                <div class="cust-breadcrumb" id="cust-breadcrumb"><span>Dashboard</span> &rsaquo; <span>Overview</span>
+                <div style="display:flex; align-items:center; gap:0.75rem;">
+                    <button class="mobile-menu-btn" onclick="openCustSidebar()" aria-label="Menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="cust-breadcrumb" id="cust-breadcrumb"><span>Dashboard</span> &rsaquo; <span>Overview</span>
+                    </div>
                 </div>
                 <div class="cust-topbar-right">
                     <button class="btn-quick-transfer" onclick="app.loadCustSection('transactions')"><i
-                            class="fa-solid fa-bolt"></i> Quick Transfer</button>
+                            class="fa-solid fa-bolt"></i> <span>Quick Transfer</span></button>
                     <div class="cust-theme-btn"><button onclick="app.cycleTheme()"><i
                                 class="fa-solid fa-circle-half-stroke"></i></button></div>
                     <div class="cust-topbar-user" onclick="app.loadCustSection('profile')"
@@ -557,8 +568,10 @@
 
     <!-- ========== EMPLOYEE DASHBOARD ========== -->
     <div id="page-employee-dash" class="dashboard-page hidden">
+        <!-- Sidebar overlay for mobile -->
+        <div class="sidebar-overlay" id="emp-sidebar-overlay" onclick="closeEmpSidebar()"></div>
         <aside class="sidebar" id="emp-sidebar">
-            <div class="sidebar-brand" onclick="app.showPage('landing')">Nexa<span>Bank</span> <span
+            <div class="sidebar-brand" onclick="app.showPage('landing')">Vault<span>Edge</span> <span
                     class="admin-badge">ADMIN</span></div>
             <nav class="sidebar-nav">
                 <div class="sidebar-group">COMMAND CENTRE</div>
@@ -617,6 +630,15 @@
             </div>
         </aside>
         <div class="dash-body">
+            <!-- Mobile top bar for employee dashboard -->
+            <div style="display:none; padding:0.75rem 1rem; background:var(--card); border-bottom:1px solid var(--border); align-items:center; gap:0.75rem; position:sticky; top:0; z-index:10;" id="emp-mobile-topbar">
+                <button class="mobile-menu-btn" onclick="openEmpSidebar()" aria-label="Menu" style="display:flex;">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <span style="font-weight:700; font-size:1rem; color:var(--text);">Admin Panel</span>
+                <button onclick="app.cycleTheme()" class="theme-icon-btn" style="margin-left:auto;"><i class="fa-solid fa-circle-half-stroke"></i></button>
+                <button onclick="app.logout()" class="btn-logout"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
             <main class="dash-main" id="emp-main-content"></main>
         </div>
     </div>
@@ -634,6 +656,65 @@
         }
     </script>
     <script src="app.js"></script>
+    <script>
+        /* ── Mobile Sidebar Toggle Functions ── */
+        function openCustSidebar() {
+            const s = document.getElementById('cust-sidebar');
+            const o = document.getElementById('cust-sidebar-overlay');
+            if (s) s.classList.add('open');
+            if (o) o.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeCustSidebar() {
+            const s = document.getElementById('cust-sidebar');
+            const o = document.getElementById('cust-sidebar-overlay');
+            if (s) s.classList.remove('open');
+            if (o) o.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function openEmpSidebar() {
+            const s = document.getElementById('emp-sidebar');
+            const o = document.getElementById('emp-sidebar-overlay');
+            if (s) s.classList.add('open');
+            if (o) o.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeEmpSidebar() {
+            const s = document.getElementById('emp-sidebar');
+            const o = document.getElementById('emp-sidebar-overlay');
+            if (s) s.classList.remove('open');
+            if (o) o.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        /* Close sidebars when nav links clicked on mobile */
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.cust-nav-link')) closeCustSidebar();
+            if (e.target.closest('.sidebar-link')) closeEmpSidebar();
+        });
+
+        /* Mobile landing nav toggle */
+        function toggleMobileNav() {
+            const menu = document.querySelector('.nav-menu');
+            if (!menu) return;
+            if (menu.style.display === 'flex') {
+                menu.style.display = '';
+            } else {
+                menu.style.cssText = 'display:flex; flex-direction:column; position:absolute; top:70px; left:0; right:0; background:var(--bg2); padding:1rem; border-bottom:1px solid var(--border); z-index:999;';
+            }
+        }
+
+        /* Close mobile menu on resize */
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                const menu = document.querySelector('.nav-menu');
+                if (menu) menu.style.cssText = '';
+                closeCustSidebar();
+                closeEmpSidebar();
+            }
+        });
+    </script>
 </body>
 
 </html>

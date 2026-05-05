@@ -1,0 +1,213 @@
+/* ================================================================
+   VAULT EDGE BANK — COMPREHENSIVE MOBILE RESPONSIVENESS
+   Covers: Auth Pages, Dashboards, Sidebars, Tables, Nav
+   ================================================================ */
+
+/* ── Hamburger button (shown only on mobile) ── */
+.mobile-menu-btn {
+    display: none;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+.mobile-menu-btn:hover { color: var(--gold2); border-color: var(--gold2); }
+
+/* Sidebar overlay for mobile */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 99;
+    backdrop-filter: blur(2px);
+}
+.sidebar-overlay.active { display: block; }
+
+/* ── Tablet & Small Desktop (≤ 1024px) ── */
+@media (max-width: 1024px) {
+    /* Reduce auth split ratio */
+    .auth-split { grid-template-columns: 0.7fr 1.3fr; }
+    .auth-left { padding: 3rem 2rem; }
+    .auth-left h2 { font-size: 1.8rem; }
+
+    /* Reduce employee sidebar */
+    .sidebar { width: 220px; }
+    .dash-main { padding: 1.5rem; }
+
+    /* Stat cards 2 col on tablet */
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .cust-stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Mobile (≤ 768px) ── */
+@media (max-width: 768px) {
+
+    /* === AUTH PAGES === */
+    .auth-split {
+        grid-template-columns: 1fr;
+        min-height: 100vh;
+    }
+    .auth-left { display: none; }
+    .auth-right {
+        padding: 1.5rem 1rem;
+        min-height: 100vh;
+        justify-content: flex-start;
+        padding-top: 2rem;
+    }
+    .auth-card {
+        width: 100%;
+        max-width: 100%;
+        padding: 1.75rem 1.25rem;
+        border-radius: 16px;
+    }
+    .auth-card-header h3 { font-size: 1.3rem; }
+    .form-row { grid-template-columns: 1fr; }
+    .steps-bar { max-width: 100%; }
+
+    /* Admin auth split */
+    .admin-auth-split { grid-template-columns: 1fr; }
+    .admin-auth-left { display: none; }
+    .admin-auth-right { padding: 1.5rem 1rem; }
+
+    /* === NAVIGATION === */
+    .main-nav { padding: 0.75rem 1rem; }
+    .nav-inner { gap: 0.5rem; }
+    .nav-menu { display: none; }
+    .nav-actions .btn-outline { display: none; }
+    .mobile-menu-btn { display: flex; }
+
+    /* === HERO === */
+    .hero-section { padding: 5rem 1rem 3rem; }
+    .hero-headline { font-size: clamp(2rem, 8vw, 3rem); }
+    .hero-subtext { font-size: 0.95rem; }
+    .hero-ctas { flex-direction: column; gap: 0.75rem; }
+    .hero-ctas button, .hero-ctas a { width: 100%; justify-content: center; }
+    .hero-stats { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+
+    /* === CUSTOMER DASHBOARD === */
+    .dashboard-page { flex-direction: column; }
+
+    .cust-sidebar {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        width: 260px;
+        height: 100vh;
+        z-index: 100;
+        transition: left 0.3s ease;
+        overflow-y: auto;
+    }
+    .cust-sidebar.open { left: 0; }
+
+    .cust-topbar { padding: 0.75rem 1rem; }
+    .cust-topbar .btn-quick-transfer span { display: none; }
+    .cust-topbar-user { display: none; }
+    .cust-main { padding: 1rem; }
+    .cust-stats { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+    .cust-stat { padding: 1rem; }
+    .cust-stat-num { font-size: 1.4rem; }
+    .cust-page-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+    .cust-greeting { font-size: 1.2rem; }
+    .qa-grid { grid-template-columns: repeat(2, 1fr); }
+    .cust-two-col { grid-template-columns: 1fr; }
+    .profile-two-col { grid-template-columns: 1fr; }
+
+    /* === EMPLOYEE DASHBOARD === */
+    .sidebar {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        width: 260px;
+        height: 100vh;
+        z-index: 100;
+        transition: left 0.3s ease;
+        overflow-y: auto;
+    }
+    .sidebar.open { left: 0; }
+
+    .dash-header {
+        padding: 1rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    .dash-greeting { font-size: 1.1rem; }
+    .dash-main { padding: 1rem; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+    .stat-card { padding: 1.25rem; }
+    .stat-value { font-size: 1.5rem; }
+
+    /* Show hamburger in dashboards */
+    .dash-header .mobile-menu-btn { display: flex; }
+    .cust-topbar .mobile-menu-btn { display: flex; }
+
+    /* Hide sidebar label text on mobile — show icons only in pill */
+    .user-pill .pill-text { display: none; }
+
+    /* === TABLES — horizontal scroll === */
+    .premium-table-wrap, .data-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .premium-table { min-width: 600px; }
+    .data-wrap table { min-width: 560px; }
+
+    /* === EMPLOYEE STATS GRID === */
+    .emp-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+    /* === MODALS === */
+    .nexa-modal {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        padding: 1.5rem !important;
+        margin: 1rem !important;
+    }
+    .nexa-modal-overlay { align-items: flex-end !important; padding-bottom: 0 !important; }
+    .nexa-modal { border-radius: 20px 20px 0 0 !important; }
+
+    /* === LOAN/FILTER BARS === */
+    .loan-filter-bar { flex-wrap: wrap; gap: 0.5rem; }
+    .loan-filter-bar button { font-size: 0.8rem; padding: 0.45rem 0.75rem; }
+
+    /* === SUCCESS PAGE === */
+    .success-card { padding: 2rem 1.25rem; }
+
+    /* === LANDING NAV BACK BUTTON === */
+    .nav-inner .btn-primary { font-size: 0.85rem; padding: 0.55rem 1rem; }
+}
+
+/* ── Small Mobile (≤ 480px) ── */
+@media (max-width: 480px) {
+    .auth-card { padding: 1.5rem 1rem; }
+    .auth-card-header h3 { font-size: 1.1rem; }
+    .btn-auth-submit { font-size: 0.9rem; padding: 0.8rem; }
+
+    .cust-stats { grid-template-columns: 1fr 1fr; }
+    .cust-stat-num { font-size: 1.2rem; }
+    .qa-grid { grid-template-columns: repeat(2, 1fr); }
+
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .stat-value { font-size: 1.3rem; }
+
+    .hero-stats { grid-template-columns: 1fr 1fr; }
+    .features-grid { grid-template-columns: 1fr; }
+
+    /* Topbar simplification */
+    .cust-topbar-right .btn-quick-transfer { display: none; }
+
+    /* Bottom nav for customer on phone */
+    .cust-sidebar {
+        /* Show as bottom sheet trigger — keep off-canvas */
+        width: 85vw;
+    }
+}
+
+@media (max-width: 768px) {
+    #emp-mobile-topbar { display: flex !important; }
+    .dash-main { padding-top: 0.5rem; }
+}
+
