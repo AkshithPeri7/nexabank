@@ -41,7 +41,12 @@ const dbPool = mysql.createPool(getPoolConfig(true));
 
 // ── Auto-initialise database & tables ────────────────────────────
 async function initDatabase() {
-    const dbName = process.env.DB_NAME || 'bank_db';
+    let dbName = process.env.DB_NAME || 'bank_db';
+    if (process.env.MYSQL_URL) {
+        const url = new URL(process.env.MYSQL_URL);
+        dbName = url.pathname.replace('/', '') || dbName;
+    }
+
     const conn   = await rootPool.getConnection();
     try {
         // 1. Create the database if it doesn't exist

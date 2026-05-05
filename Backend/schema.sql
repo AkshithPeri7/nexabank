@@ -1,8 +1,6 @@
 -- ============================================================
--- NexaBank Complete Schema  (DROP & RECREATE safe)
+-- Vault Edge Bank Complete Schema (DROP & RECREATE safe)
 -- ============================================================
-CREATE DATABASE IF NOT EXISTS bank_db;
-USE bank_db;
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS EMPLOYEE_SUPERVISES_CUSTOMER;
