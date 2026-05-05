@@ -2,7 +2,7 @@ class NexaBank {
     constructor() {
         this.api = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? 'http://localhost:5000/api'
-            : 'https://YOUR_RAILWAY_BACKEND_URL.up.railway.app/api';
+            : 'https://nexabank-production.up.railway.app/api';
         this.token = localStorage.getItem('nx_token');
         this.userType = localStorage.getItem('nx_type');
         this.userName = localStorage.getItem('nx_name');
