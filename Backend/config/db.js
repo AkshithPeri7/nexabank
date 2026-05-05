@@ -187,17 +187,24 @@ async function initDatabase() {
             await conn.query(sql);
         }
 
-        // 3. Seed a default admin if none exists (password: admin123)
+        // 3. Seed default employees if none exists (password: admin123)
         const [admins] = await conn.query('SELECT COUNT(*) AS cnt FROM BANK_EMPLOYEE');
         if (admins[0].cnt === 0) {
             const bcrypt = require('bcryptjs');
             const hash   = await bcrypt.hash('admin123', 10);
-            await conn.query(
-                `INSERT INTO BANK_EMPLOYEE (Name, LName, Responsibility, PasswordHash)
-                 VALUES ('Admin', 'NexaBank', 'Branch Manager', ?)`,
-                [hash]
-            );
-            console.log('✅ Default admin created — Login: Name="Admin", Password="admin123"');
+            const employees = [
+                ['Akshith', 'Peri', 'System Administrator', hash],
+                ['John', 'Doe', 'Loan Officer', hash],
+                ['Jane', 'Smith', 'Customer Support', hash],
+                ['Michael', 'Scott', 'Branch Manager', hash]
+            ];
+            for (const emp of employees) {
+                await conn.query(
+                    `INSERT INTO BANK_EMPLOYEE (Name, LName, Responsibility, PasswordHash) VALUES (?, ?, ?, ?)`,
+                    emp
+                );
+            }
+            console.log('✅ Default employees created — Password for all: admin123');
         }
 
         console.log(`✅ Database "${dbName}" ready — all tables verified.`);

@@ -385,9 +385,10 @@ class NexaBank {
         const h = new Date().getHours();
         const greet = h < 12 ? 'Good Morning' : h < 18 ? 'Good Afternoon' : 'Good Evening';
         const name = this.userName || 'User';
+        const cid = this.userId ? ` | Cust ID: ${this.userId}` : '';
         el.innerHTML = `<div class="cust-inner">
         <div class="cust-page-header">
-            <div><h1 class="cust-greeting">${greet}, ${name} 👋</h1><p class="cust-greet-sub">Your financial overview for today</p></div>
+            <div><h1 class="cust-greeting">${greet}, ${name}${cid} 👋</h1><p class="cust-greet-sub">Your financial overview for today</p></div>
             <button class="btn-new-txn" onclick="app.loadCustSection('transactions')">+ New Transaction</button>
         </div>
         <div class="cust-stats">
@@ -815,8 +816,8 @@ class NexaBank {
         const el = document.getElementById('emp-main-content');
         el.innerHTML = `<div class="emp-dash-header">
             <div>
-                <h1 class="emp-dash-title">Good Morning, ${this.userName || 'Admin'} 🏦</h1>
-                <p class="emp-dash-sub">Branch Manager - Full management access</p>
+                <h1 class="emp-dash-title">Good Morning, ${this.userName || 'Admin'}${this.userId ? ` | Emp ID: ${this.userId}` : ''} 🏦</h1>
+                <p class="emp-dash-sub">Banker & Admin Portal</p>
             </div>
             <div style="display:flex; gap:0.75rem; align-items:center;">
                 <button class="theme-icon-btn" onclick="app.cycleTheme()" title="Switch Theme"><i class="fa-solid fa-circle-half-stroke"></i></button>

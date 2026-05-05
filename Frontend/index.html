@@ -228,7 +228,8 @@
                             </div>
                         </div>
                         <div style="text-align: right; margin-bottom: 1rem;">
-                            <a href="#" style="font-size: 0.8rem; color: #555; text-decoration: underline;">Forgot Password?</a>
+                            <a href="#" style="font-size: 0.8rem; color: #555; text-decoration: underline;">Forgot
+                                Password?</a>
                         </div>
                         <div id="login-error" class="form-error hidden"></div>
                         <button type="submit" class="btn-auth-submit" id="login-btn">
@@ -261,10 +262,12 @@
     <div id="page-admin-login" class="auth-page hidden" style="padding: 0;">
         <div class="admin-auth-split">
             <div class="admin-auth-left">
-                <div class="auth-logo" onclick="app.showPage('landing')" style="cursor: pointer; color: var(--text);">Nexa<span style="color: var(--gold2)">Bank</span></div>
+                <div class="auth-logo" onclick="app.showPage('landing')" style="cursor: pointer; color: var(--text);">
+                    Nexa<span style="color: var(--gold2)">Bank</span></div>
                 <div class="admin-badge-strip"><i class="fa-solid fa-lock"></i> SECURE ADMIN ACCESS</div>
                 <h2 class="admin-auth-title">Banker &<br>Admin Portal.</h2>
-                <p class="admin-auth-desc">Restricted access for authorized NexaBank personnel only. All activity is logged and monitored.</p>
+                <p class="admin-auth-desc">Restricted access for authorized NexaBank personnel only. All activity is
+                    logged and monitored.</p>
                 <div class="admin-feature-list">
                     <div><i class="fa-solid fa-check-circle"></i> Loan approval workflow</div>
                     <div><i class="fa-solid fa-check-circle"></i> KYC & risk management</div>
@@ -280,26 +283,29 @@
 
                     <form id="admin-login-form" onsubmit="app.handleAdminLogin(event)">
                         <input type="hidden" id="admin-login-portal" value="employee">
-                        
+
                         <div class="form-group">
                             <label class="admin-label">EMPLOYEE ID / EMAIL</label>
-                            <input type="text" class="admin-input" id="admin-login-fname" placeholder="employee@nexabank.com" required>
+                            <input type="text" class="admin-input" id="admin-login-fname"
+                                placeholder="employee@nexabank.com" required>
                         </div>
-                        
+
                         <div class="form-group">
                             <label class="admin-label">SECURE PASSWORD</label>
-                            <input type="password" class="admin-input" id="admin-login-password" placeholder="••••••••" required>
+                            <input type="password" class="admin-input" id="admin-login-password" placeholder="••••••••"
+                                required>
                         </div>
-                        
+
                         <div id="admin-login-error" class="form-error hidden"></div>
-                        
+
                         <button type="submit" class="btn-admin-submit" id="admin-login-btn">
                             Access Admin Portal →
                         </button>
                     </form>
-                    
+
                     <p class="admin-auth-back">
-                        <a href="#" onclick="app.showPage('landing')" style="color:#666; font-weight:normal;">← Back to Home</a><br>
+                        <a href="#" onclick="app.showPage('landing')" style="color:#666; font-weight:normal;">← Back to
+                            Home</a><br>
                         Customer login? <a href="#" onclick="app.showPage('login')">Click here</a>
                     </p>
                 </div>
@@ -372,6 +378,16 @@
                     </div>
                     <button class="btn-auth-submit" onclick="app.nextStep(2)">Continue <i
                             class="fa-solid fa-arrow-right"></i></button>
+                    <div class="google-auth-separator"
+                        style="text-align:center; margin:1rem 0; color:var(--text3); font-size:0.8rem; text-transform:uppercase; letter-spacing:1px; position:relative;">
+                        <span style="background:var(--card); padding:0 10px; position:relative; z-index:1;">OR</span>
+                        <div style="position:absolute; top:50%; left:0; right:0; height:1px; background:var(--border); z-index:0;"></div>
+                    </div>
+                    <button type="button" class="btn-google-login" onclick="app.loginWithGoogle()"
+                        style="width:100%; padding:0.8rem; background:white; color:#333; border:1px solid #ddd; border-radius:8px; font-weight:600; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:10px; transition:all 0.2s; margin-bottom: 1rem;">
+                        <img src="https://authjs.dev/img/providers/google.svg" width="20" height="20" alt="Google">
+                        Sign up with Google
+                    </button>
                     <p class="auth-back"><a href="#" onclick="app.showPage('landing')">← Back to Home</a></p>
                 </div>
 
@@ -479,36 +495,38 @@
         <aside class="cust-sidebar">
             <div class="cust-brand" onclick="app.showPage('landing')">Nexa<span>Bank</span></div>
             <nav class="cust-sidebar-nav" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">
-            <div class="cust-nav-group">
-                <span class="cust-nav-label">MAIN</span>
-                <a href="#" class="cust-nav-link active" id="cnav-dashboard"
-                    onclick="app.loadCustSection('dashboard'); return false;"><i class="fa-solid fa-table-columns"></i>
-                    Dashboard</a>
-            </div>
-            <div class="cust-nav-group">
-                <span class="cust-nav-label">FINANCE</span>
-                <a href="#" class="cust-nav-link" id="cnav-accounts"
-                    onclick="app.loadCustSection('accounts'); return false;"><i
-                        class="fa-solid fa-building-columns"></i> Accounts</a>
-                <a href="#" class="cust-nav-link" id="cnav-transactions"
-                    onclick="app.loadCustSection('transactions'); return false;"><i
-                        class="fa-solid fa-arrow-right-arrow-left"></i> Transactions</a>
-                <a href="#" class="cust-nav-link" id="cnav-loans"
-                    onclick="app.loadCustSection('loans'); return false;"><i
-                        class="fa-solid fa-hand-holding-dollar"></i> Loans</a>
-                <a href="#" class="cust-nav-link" id="cnav-creditcards"
-                    onclick="app.loadCustSection('creditcards'); return false;"><i
-                        class="fa-regular fa-credit-card"></i> Credit Cards</a>
-            </div>
-            <div class="cust-nav-group">
-                <span class="cust-nav-label">SYSTEM</span>
-                <a href="#" class="cust-nav-link" id="cnav-profile"
-                    onclick="app.loadCustSection('profile'); return false;"><i class="fa-solid fa-circle-user"></i>
-                    Profile</a>
-            </div>
+                <div class="cust-nav-group">
+                    <span class="cust-nav-label">MAIN</span>
+                    <a href="#" class="cust-nav-link active" id="cnav-dashboard"
+                        onclick="app.loadCustSection('dashboard'); return false;"><i
+                            class="fa-solid fa-table-columns"></i>
+                        Dashboard</a>
+                </div>
+                <div class="cust-nav-group">
+                    <span class="cust-nav-label">FINANCE</span>
+                    <a href="#" class="cust-nav-link" id="cnav-accounts"
+                        onclick="app.loadCustSection('accounts'); return false;"><i
+                            class="fa-solid fa-building-columns"></i> Accounts</a>
+                    <a href="#" class="cust-nav-link" id="cnav-transactions"
+                        onclick="app.loadCustSection('transactions'); return false;"><i
+                            class="fa-solid fa-arrow-right-arrow-left"></i> Transactions</a>
+                    <a href="#" class="cust-nav-link" id="cnav-loans"
+                        onclick="app.loadCustSection('loans'); return false;"><i
+                            class="fa-solid fa-hand-holding-dollar"></i> Loans</a>
+                    <a href="#" class="cust-nav-link" id="cnav-creditcards"
+                        onclick="app.loadCustSection('creditcards'); return false;"><i
+                            class="fa-regular fa-credit-card"></i> Credit Cards</a>
+                </div>
+                <div class="cust-nav-group">
+                    <span class="cust-nav-label">SYSTEM</span>
+                    <a href="#" class="cust-nav-link" id="cnav-profile"
+                        onclick="app.loadCustSection('profile'); return false;"><i class="fa-solid fa-circle-user"></i>
+                        Profile</a>
+                </div>
             </nav>
             <div class="cust-sidebar-footer">
-                <div class="cust-user-pill" onclick="app.loadCustSection('profile')" style="cursor: pointer;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                <div class="cust-user-pill" onclick="app.loadCustSection('profile')" style="cursor: pointer;"
+                    onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
                     <div class="cust-user-avatar" id="cust-avatar">U</div>
                     <div>
                         <div class="cust-user-name" id="dash-user-name">User</div>
@@ -527,7 +545,9 @@
                             class="fa-solid fa-bolt"></i> Quick Transfer</button>
                     <div class="cust-theme-btn"><button onclick="app.cycleTheme()"><i
                                 class="fa-solid fa-circle-half-stroke"></i></button></div>
-                    <div class="cust-topbar-user" onclick="app.loadCustSection('profile')" style="cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='var(--gold2)'" onmouseout="this.style.color=''"><i class="fa-solid fa-user"></i> <span
+                    <div class="cust-topbar-user" onclick="app.loadCustSection('profile')"
+                        style="cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='var(--gold2)'"
+                        onmouseout="this.style.color=''"><i class="fa-solid fa-user"></i> <span
                             id="cust-topbar-name">User</span></div>
                 </div>
             </header>
@@ -542,7 +562,8 @@
                     class="admin-badge">ADMIN</span></div>
             <nav class="sidebar-nav">
                 <div class="sidebar-group">COMMAND CENTRE</div>
-                <a href="#" class="sidebar-link active" id="esnav-overview" onclick="app.loadEmpSection('overview'); return false;">
+                <a href="#" class="sidebar-link active" id="esnav-overview"
+                    onclick="app.loadEmpSection('overview'); return false;">
                     <i class="fa-solid fa-chart-pie"></i><span>Admin Dashboard</span>
                 </a>
 
@@ -550,7 +571,8 @@
                 <a href="#" class="sidebar-link" id="esnav-loans" onclick="app.loadEmpSection('loans'); return false;">
                     <i class="fa-solid fa-file-invoice-dollar"></i><span>Loan Approvals</span>
                 </a>
-                <a href="#" class="sidebar-link" id="esnav-creditcards" onclick="app.loadEmpSection('creditcards'); return false;">
+                <a href="#" class="sidebar-link" id="esnav-creditcards"
+                    onclick="app.loadEmpSection('creditcards'); return false;">
                     <i class="fa-regular fa-credit-card"></i><span>Card Approvals</span>
                 </a>
                 <a href="#" class="sidebar-link" id="esnav-kyc" onclick="app.loadEmpSection('kyc'); return false;">
@@ -558,27 +580,33 @@
                 </a>
 
                 <div class="sidebar-group">MANAGEMENT</div>
-                <a href="#" class="sidebar-link" id="esnav-customers" onclick="app.loadEmpSection('customers'); return false;">
+                <a href="#" class="sidebar-link" id="esnav-customers"
+                    onclick="app.loadEmpSection('customers'); return false;">
                     <i class="fa-solid fa-users"></i><span>All Customers</span>
                 </a>
-                <a href="#" class="sidebar-link" id="esnav-accounts" onclick="app.loadEmpSection('accounts'); return false;">
+                <a href="#" class="sidebar-link" id="esnav-accounts"
+                    onclick="app.loadEmpSection('accounts'); return false;">
                     <i class="fa-solid fa-building-columns"></i><span>All Accounts</span>
                 </a>
-                <a href="#" class="sidebar-link" id="esnav-transactions" onclick="app.loadEmpSection('transactions'); return false;">
+                <a href="#" class="sidebar-link" id="esnav-transactions"
+                    onclick="app.loadEmpSection('transactions'); return false;">
                     <i class="fa-solid fa-money-bill-transfer"></i><span>All Transactions</span>
                 </a>
-                <a href="#" class="sidebar-link" id="esnav-employees" onclick="app.loadEmpSection('employees'); return false;">
+                <a href="#" class="sidebar-link" id="esnav-employees"
+                    onclick="app.loadEmpSection('employees'); return false;">
                     <i class="fa-solid fa-user-tie"></i><span>Employees</span>
                 </a>
 
                 <div class="sidebar-group">REPORTS & COMPLIANCE</div>
-                <a href="#" class="sidebar-link" id="esnav-reports" onclick="app.loadEmpSection('reports'); return false;">
+                <a href="#" class="sidebar-link" id="esnav-reports"
+                    onclick="app.loadEmpSection('reports'); return false;">
                     <i class="fa-solid fa-file-contract"></i><span>Reports</span>
                 </a>
                 <a href="#" class="sidebar-link" id="esnav-audit" onclick="app.loadEmpSection('audit'); return false;">
                     <i class="fa-solid fa-shield-halved"></i><span>Audit Log</span>
                 </a>
-                <a href="#" class="sidebar-link" id="esnav-profile" onclick="app.loadEmpSection('profile'); return false;">
+                <a href="#" class="sidebar-link" id="esnav-profile"
+                    onclick="app.loadEmpSection('profile'); return false;">
                     <i class="fa-solid fa-circle-user"></i><span>Profile</span>
                 </a>
             </nav>

@@ -49,8 +49,17 @@ exports.login = async (req, res) => {
 
         const table     = type === 'employee' ? 'BANK_EMPLOYEE' : 'BANK_CUSTOMER';
         const nameField = type === 'employee' ? 'Name' : 'FName';
+        const idField   = type === 'employee' ? 'EID' : 'Cust_ID';
 
-        const [rows] = await db.query(`SELECT * FROM ${table} WHERE ${nameField} = ? LIMIT 1`, [fName]);
+        let query = `SELECT * FROM ${table} WHERE ${nameField} = ? LIMIT 1`;
+        let params = [fName];
+
+        if (!isNaN(fName)) {
+            query = `SELECT * FROM ${table} WHERE ${idField} = ? OR ${nameField} = ? LIMIT 1`;
+            params = [parseInt(fName), fName];
+        }
+
+        const [rows] = await db.query(query, params);
         if (!rows.length) return res.status(400).json({ error: 'No account found. Please sign up first.' });
 
         const user = rows[0];

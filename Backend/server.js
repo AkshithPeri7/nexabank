@@ -4,13 +4,9 @@ require('dotenv').config();
 
 const app = express();
 app.use(cors({
-    origin: [
-        'http://localhost:3000',
-        'http://127.0.0.1:3000',
-        'http://localhost:5500',
-        'http://127.0.0.1:5500',
-        'https://astounding-croquembouche-70ce0e.netlify.app'
-    ],
+    origin: function(origin, callback) {
+        callback(null, true);
+    },
     credentials: true
 }));
 app.use(express.json());
