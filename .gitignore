@@ -1,0 +1,11 @@
+# Environment variables — NEVER commit these
+Backend/.env
+.env
+
+# Node modules — too large to upload
+node_modules/
+Backend/node_modules/
+
+# Logs
+*.log
+npm-debug.log*
