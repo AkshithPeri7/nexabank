@@ -1,25 +1,43 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
+// Support Railway's full MYSQL_URL connection string OR individual vars
+function getPoolConfig(includeDb = false) {
+    if (process.env.MYSQL_URL) {
+        // Railway provides a full connection URL — parse and use it
+        const url = new URL(process.env.MYSQL_URL);
+        const cfg = {
+            host:             url.hostname,
+            port:             parseInt(url.port) || 3306,
+            user:             url.username,
+            password:         url.password,
+            waitForConnections: true,
+            connectionLimit:  10,
+            queueLimit:       0,
+        };
+        if (includeDb) cfg.database = url.pathname.replace('/', '');
+        return cfg;
+    }
+    // Local development — use individual env vars
+    const cfg = {
+        host:             process.env.DB_HOST     || 'localhost',
+        port:             parseInt(process.env.DB_PORT) || 3306,
+        user:             process.env.DB_USER     || 'root',
+        password:         process.env.DB_PASSWORD || '',
+        waitForConnections: true,
+        connectionLimit:  10,
+        queueLimit:       0,
+    };
+    if (includeDb) cfg.database = process.env.DB_NAME || 'bank_db';
+    return cfg;
+}
+
 // Pool WITHOUT database — used only for initial DB creation
-const rootPool = mysql.createPool({
-    host:             process.env.DB_HOST     || 'localhost',
-    user:             process.env.DB_USER     || 'root',
-    password:         process.env.DB_PASSWORD || '',
-    waitForConnections: true,
-    connectionLimit:  5,
-});
+const rootPool = mysql.createPool(getPoolConfig(false));
 
 // Pool WITH database — used by all controllers
-const dbPool = mysql.createPool({
-    host:             process.env.DB_HOST     || 'localhost',
-    user:             process.env.DB_USER     || 'root',
-    password:         process.env.DB_PASSWORD || '',
-    database:         process.env.DB_NAME     || 'bank_db',
-    waitForConnections: true,
-    connectionLimit:  10,
-    queueLimit:       0,
-});
+const dbPool = mysql.createPool(getPoolConfig(true));
+
 
 // ── Auto-initialise database & tables ────────────────────────────
 async function initDatabase() {
