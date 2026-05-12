@@ -90,7 +90,7 @@ exports.login = async (req, res) => {
 // ─── GOOGLE LOGIN (SUPABASE) ──────────────────────────────────────
 exports.googleLogin = async (req, res) => {
     try {
-        const { email, fName, lName } = req.body;
+        const { email, fName, lName, contactNo, initialDeposit } = req.body;
         if (!email) return res.status(400).json({ error: 'Email is required from Google Auth.' });
 
         // 1. Check if user exists
@@ -99,31 +99,34 @@ exports.googleLogin = async (req, res) => {
         let userId;
         let firstName = fName || 'User';
         let lastName = lName || '';
+        let isNewUser = false;
 
         if (rows.length > 0) {
-            // User exists
+            // Existing user — just log them in
             userId = rows[0].Cust_ID;
             firstName = rows[0].FName;
             lastName = rows[0].LName;
         } else {
-            // User doesn't exist, auto-register them
+            // New user — register them
+            isNewUser = true;
             const [custR] = await db.query(
-                `INSERT INTO BANK_CUSTOMER (FName, LName, Email, CustomerType) VALUES (?, ?, ?, 'INDIVIDUAL')`,
-                [firstName, lastName, email]
+                `INSERT INTO BANK_CUSTOMER (FName, LName, Email, ContactNo, CustomerType) VALUES (?, ?, ?, ?, 'INDIVIDUAL')`,
+                [firstName, lastName, email, contactNo || null]
             );
             userId = custR.insertId;
 
-            // Auto-create a linked savings account for the new Google user
+            // Create a savings account with initial deposit (default ₹500 if not provided)
+            const balance = parseFloat(initialDeposit) || 500;
             await db.query(
-                `INSERT INTO ACCOUNT (CustID, AccountType, Balance) VALUES (?, 'SAVINGS', 500)`,
-                [userId]
+                `INSERT INTO ACCOUNT (CustID, AccountType, Balance) VALUES (?, 'SAVINGS', ?)`,
+                [userId, balance]
             );
         }
 
         // Generate JWT Token
         const token = jwt.sign({ id: userId, type: 'customer' }, process.env.JWT_SECRET || 'nexabank_2024', { expiresIn: '8h' });
 
-        res.json({ token, message: 'Google Login successful.', user: { fName: firstName, lName: lastName, id: userId } });
+        res.json({ token, isNewUser, message: 'Google Login successful.', user: { fName: firstName, lName: lastName, id: userId } });
     } catch (err) {
         console.error('Google Login Error:', err.message);
         res.status(500).json({ error: 'Server error during Google login.' });

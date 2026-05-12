@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * Vault Edge Bank — Full Migration Script
+ * NexaBank — Full Migration Script
  * Migrates ALL data from local bank_db → Railway Database
  * Run once: node migrateToRailway.js
  * ============================================================
@@ -158,7 +158,7 @@ async function migrate() {
     let railway = null;
 
     try {
-        console.log('\n🚀 Vault Edge Bank — Migration Tool');
+        console.log('\n🚀 NexaBank — Migration Tool');
         console.log('====================================\n');
 
         // 1. Connect to Railway
@@ -199,19 +199,19 @@ async function migrate() {
                     // Clear existing Railway data first to avoid duplicates
                     await railway.query('SET FOREIGN_KEY_CHECKS = 0');
                     await railway.query(`DELETE FROM \`${table}\``);
-                    await railway.query(`ALTER TABLE \`${table}\` AUTO_INCREMENT = 1`);
+                    try { await railway.query(`ALTER TABLE \`${table}\` AUTO_INCREMENT = 1`); } catch(e) {}
                     await railway.query('SET FOREIGN_KEY_CHECKS = 1');
 
-                    // Bulk insert
+                    // Insert row by row using parameterized queries (safe & correct)
                     const columns = Object.keys(rows[0]).map(c => `\`${c}\``).join(', ');
-                    const values = rows.map(row =>
-                        '(' + Object.values(row).map(v =>
-                            v === null ? 'NULL' : mysql.escape ? `'${String(v).replace(/'/g, "''")}'` : railway.escape(v)
-                        ).join(', ') + ')'
-                    );
+                    const placeholders = Object.keys(rows[0]).map(() => '?').join(', ');
 
-                    for (const val of values) {
-                        await railway.query(`INSERT INTO \`${table}\` (${columns}) VALUES ${val.slice(1, -1)}`);
+                    for (const row of rows) {
+                        const values = Object.values(row).map(v => v instanceof Date ? v : v);
+                        await railway.query(
+                            `INSERT INTO \`${table}\` (${columns}) VALUES (${placeholders})`,
+                            values
+                        );
                     }
 
                     console.log(`   ✅ ${table}: migrated ${rows.length} record(s).`);

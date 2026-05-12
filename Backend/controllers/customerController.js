@@ -44,3 +44,25 @@ exports.remove = async (req, res) => {
     res.json({ message: 'Customer deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
+
+// ─── GOOGLE ONBOARDING: Update contact + initial deposit ─────────
+exports.updateContact = async (req, res) => {
+  const { contactNo, initialDeposit } = req.body;
+  const custId = req.params.id;
+  try {
+    // Update phone number
+    if (contactNo) {
+      await db.query('UPDATE BANK_CUSTOMER SET ContactNo = ? WHERE Cust_ID = ?', [contactNo, custId]);
+    }
+    // Update the balance of the most recent savings account
+    if (initialDeposit && parseFloat(initialDeposit) >= 500) {
+      await db.query(
+        `UPDATE ACCOUNT SET Balance = ? WHERE CustID = ? AND AccountType = 'SAVINGS' ORDER BY CreatedAt DESC LIMIT 1`,
+        [parseFloat(initialDeposit), custId]
+      );
+    }
+    res.json({ message: 'Contact and deposit updated successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -6,7 +6,7 @@ class NexaBank {
         this.token = localStorage.getItem('nx_token');
         this.userType = localStorage.getItem('nx_type');
         this.userName = localStorage.getItem('nx_name');
-        this.userId = localStorage.getItem('nx_id');
+        this.userId = localStorage.getItem('nx_id') ? Number(localStorage.getItem('nx_id')) : null;
         this.theme = localStorage.getItem('nx_theme') || 'dark';
         this.selectedAccountType = 'SAVINGS';
         this.currentStep = 1;
@@ -58,8 +58,9 @@ class NexaBank {
 
         if (page === 'customer-dash') {
             const name = this.userName || 'User';
+            const cidText = this.userId ? ` (ID: ${this.userId})` : '';
             document.getElementById('dash-user-name').textContent = name;
-            document.getElementById('cust-topbar-name').textContent = name;
+            document.getElementById('cust-topbar-name').textContent = name + cidText;
             document.getElementById('cust-avatar').textContent = name.charAt(0).toUpperCase();
             this.loadCustSection('dashboard');
         }
@@ -124,7 +125,7 @@ class NexaBank {
             this.token    = data.token;
             this.userType = type;
             this.userName = data.user?.fName || fName;
-            this.userId   = data.user?.id;
+            this.userId   = data.user?.id ? Number(data.user.id) : null;
             localStorage.setItem('nx_token',  this.token);
             localStorage.setItem('nx_type',   this.userType);
             localStorage.setItem('nx_name',   this.userName);
@@ -165,7 +166,7 @@ class NexaBank {
             this.token    = data.token;
             this.userType = type;
             this.userName = data.user?.fName || fName;
-            this.userId   = data.user?.id;
+            this.userId   = data.user?.id ? Number(data.user.id) : null;
             localStorage.setItem('nx_token',  this.token);
             localStorage.setItem('nx_type',   this.userType);
             localStorage.setItem('nx_name',   this.userName);
@@ -289,11 +290,15 @@ class NexaBank {
             return;
         }
         try {
+            // Always redirect to the production site, unless running locally
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const redirectTo = isLocal
+                ? window.location.origin + window.location.pathname
+                : 'https://nexabanke.netlify.app/';
+
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
-                options: {
-                    redirectTo: window.location.origin + window.location.pathname
-                }
+                options: { redirectTo }
             });
             if (error) throw error;
         } catch (err) {
@@ -310,13 +315,10 @@ class NexaBank {
         if (session && session.user) {
             const email = session.user.email;
             const fName = session.user.user_metadata?.first_name || session.user.user_metadata?.full_name?.split(' ')[0] || 'User';
-            const lName = session.user.user_metadata?.last_name || '';
+            const lName = session.user.user_metadata?.last_name || session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '';
 
             try {
-                // We show loading state on landing
-                const btn = document.getElementById('login-btn');
-                if(btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Authenticating...';
-
+                // First, do a quick check — call backend without extra fields to detect new vs existing
                 const res = await fetch(`${this.api}/auth/google`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -325,26 +327,150 @@ class NexaBank {
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || 'Backend sync failed');
 
-                localStorage.setItem('nx_token', data.token);
-                localStorage.setItem('nx_type', 'customer');
-                localStorage.setItem('nx_name', data.user.fName);
-                localStorage.setItem('nx_id', data.user.id);
-                this.token = data.token;
-                this.userType = 'customer';
-                this.userName = data.user.fName;
-                this.userId = data.user.id;
-                this.showPage('customer-dash');
-                
-                // Clear the supabase hash from the URL
+                // Store auth state
+                this._pendingGoogleAuth = { token: data.token, user: data.user };
+
+                // Clear supabase session early
                 window.history.replaceState({}, document.title, window.location.pathname);
-                
-                // Sign out of supabase to prevent persistent session loops
                 await supabase.auth.signOut();
+
+                if (data.isNewUser) {
+                    // New user — show onboarding modal to collect extra details
+                    this._showGoogleOnboardingModal(fName, data);
+                } else {
+                    // Returning user — go straight to dashboard
+                    this._completeGoogleLogin(data);
+                }
             } catch (err) {
-                alert('Google Authentication Backend Sync Error: ' + err.message);
+                alert('Google Authentication Error: ' + err.message);
             }
         }
     }
+
+    _showGoogleOnboardingModal(fName, data) {
+        // Remove existing modal if any
+        const old = document.getElementById('googleOnboardModal');
+        if (old) old.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'googleOnboardModal';
+        overlay.style.cssText = `
+            position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999;
+            display:flex; align-items:center; justify-content:center; padding:1rem;
+            backdrop-filter:blur(4px);
+        `;
+        overlay.innerHTML = `
+            <div style="background:var(--card); border:1px solid var(--border); border-radius:20px;
+                        padding:2rem; width:100%; max-width:420px; animation:authFadeIn 0.3s ease-out;">
+                <div style="text-align:center; margin-bottom:1.5rem;">
+                    <div style="width:56px;height:56px;background:rgba(240,192,64,0.12);border-radius:50%;
+                                display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;">
+                        <i class="fa-solid fa-user-check" style="font-size:1.4rem;color:var(--gold2);"></i>
+                    </div>
+                    <h3 style="font-size:1.3rem;font-weight:800;color:var(--text);margin-bottom:0.3rem;">
+                        Almost done, ${fName}! 🎉
+                    </h3>
+                    <p style="color:var(--text3);font-size:0.88rem;">
+                        Complete your NexaBank account setup — takes 10 seconds.
+                    </p>
+                </div>
+
+                <div style="margin-bottom:1rem;">
+                    <label style="font-size:0.72rem;font-weight:700;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:0.4rem;">
+                        PHONE NUMBER
+                    </label>
+                    <div style="display:flex;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:0 0.85rem;">
+                        <i class="fa-solid fa-phone" style="color:var(--text3);margin-right:0.6rem;font-size:0.9rem;"></i>
+                        <input id="gob-phone" type="tel" placeholder="+91 98765 43210"
+                            style="flex:1;background:transparent;border:none;outline:none;padding:0.75rem 0;
+                                   color:var(--text);font-size:0.95rem;font-family:'Inter',sans-serif;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom:1.5rem;">
+                    <label style="font-size:0.72rem;font-weight:700;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:0.4rem;">
+                        INITIAL DEPOSIT (₹)
+                    </label>
+                    <div style="display:flex;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:0 0.85rem;">
+                        <i class="fa-solid fa-indian-rupee-sign" style="color:var(--text3);margin-right:0.6rem;font-size:0.9rem;"></i>
+                        <input id="gob-deposit" type="number" min="500" placeholder="Minimum ₹500"
+                            style="flex:1;background:transparent;border:none;outline:none;padding:0.75rem 0;
+                                   color:var(--text);font-size:0.95rem;font-family:'Inter',sans-serif;">
+                    </div>
+                    <p style="font-size:0.75rem;color:var(--text3);margin-top:0.3rem;">
+                        <i class="fa-solid fa-circle-info"></i> Minimum opening balance is ₹500
+                    </p>
+                </div>
+
+                <div id="gob-error" style="display:none;color:#ef4444;font-size:0.83rem;font-weight:600;margin-bottom:0.75rem;"></div>
+
+                <button onclick="app._submitGoogleOnboarding()" id="gob-submit-btn"
+                    style="width:100%;padding:0.85rem;background:var(--gold2);color:#000;border:none;
+                           border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;
+                           display:flex;align-items:center;justify-content:center;gap:0.6rem;
+                           transition:all 0.2s;font-family:'Inter',sans-serif;">
+                    <i class="fa-solid fa-bank"></i> Open My Account
+                </button>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        document.getElementById('gob-phone').focus();
+    }
+
+    async _submitGoogleOnboarding() {
+        const phone = document.getElementById('gob-phone')?.value.trim();
+        const deposit = parseFloat(document.getElementById('gob-deposit')?.value);
+        const errEl = document.getElementById('gob-error');
+        const btn = document.getElementById('gob-submit-btn');
+
+        // Validate
+        if (!phone) { errEl.style.display='block'; errEl.textContent='Please enter your phone number.'; return; }
+        if (!deposit || deposit < 500) { errEl.style.display='block'; errEl.textContent='Minimum initial deposit is ₹500.'; return; }
+        errEl.style.display = 'none';
+
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Setting up your account...';
+        btn.disabled = true;
+
+        try {
+            // Update contact number on the newly created account
+            const pendingData = this._pendingGoogleAuth;
+            await fetch(`${this.api}/customers/${pendingData.user.id}/contact`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${pendingData.token}` },
+                body: JSON.stringify({ contactNo: phone, initialDeposit: deposit })
+            });
+
+            // Close modal and go to dashboard
+            const modal = document.getElementById('googleOnboardModal');
+            if (modal) modal.remove();
+            this._completeGoogleLogin(pendingData);
+        } catch (err) {
+            btn.innerHTML = '<i class="fa-solid fa-bank"></i> Open My Account';
+            btn.disabled = false;
+            errEl.style.display = 'block';
+            errEl.textContent = 'Error saving details. Proceeding to dashboard anyway.';
+            setTimeout(() => {
+                const modal = document.getElementById('googleOnboardModal');
+                if (modal) modal.remove();
+                this._completeGoogleLogin(this._pendingGoogleAuth);
+            }, 2000);
+        }
+    }
+
+    _completeGoogleLogin(data) {
+        const uid = Number(data.user.id);
+        localStorage.setItem('nx_token', data.token);
+        localStorage.setItem('nx_type', 'customer');
+        localStorage.setItem('nx_name', data.user.fName);
+        localStorage.setItem('nx_id', uid);
+        this.token = data.token;
+        this.userType = 'customer';
+        this.userName = data.user.fName;
+        this.userId = uid;
+        this.showPage('customer-dash');
+    }
+
+
 
     // ─── LOGOUT ────────────────────────────────────────────────
     logout() {
