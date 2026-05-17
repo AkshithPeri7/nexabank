@@ -715,8 +715,8 @@ class NexaBank {
                 <div class="nexa-modal-icon" style="background:rgba(240,192,64,0.12)"><i class="fa-solid fa-bolt" style="color:#f0c040"></i></div>
                 <div><div class="nexa-modal-title">Quick Transfer</div><div class="nexa-modal-sub">Instant fund transfer</div></div>
             </div>
-            <div class="nexa-modal-field"><label>CUSTOMER ID</label><input id="tf-cust" class="nexa-modal-input" placeholder="e.g. 2001"></div>
-            <div class="nexa-modal-field"><label>ACCOUNT NUMBER</label><input id="tf-acct" class="nexa-modal-input" placeholder="e.g. 10001"></div>
+            <div class="nexa-modal-field"><label>CUSTOMER ID <span style="text-transform:none;color:#9ca3af;font-weight:normal">(Optional)</span></label><input id="tf-cust" class="nexa-modal-input" placeholder="e.g. 2001"></div>
+            <div class="nexa-modal-field"><label>ACCOUNT NUMBER</label><input id="tf-acct" class="nexa-modal-input" placeholder="e.g. 1000000001"></div>
             <div class="nexa-modal-field"><label>AMOUNT (₹)</label><input id="tf-amount" class="nexa-modal-input" type="number" placeholder="1000"></div>
             <div class="nexa-modal-field"><label>TRANSFER MODE</label>
                 <select id="tf-mode" class="nexa-modal-input">
@@ -738,18 +738,17 @@ class NexaBank {
         const amount = parseFloat(document.getElementById('tf-amount').value);
         const mode   = document.getElementById('tf-mode').value;
         const errEl  = document.getElementById('tf-error');
-        if (!custId || !acctNo || !amount) { errEl.textContent = 'All fields are required.'; errEl.classList.remove('hidden'); return; }
+        if (!acctNo || !amount) { errEl.textContent = 'Account Number and Amount are required.'; errEl.classList.remove('hidden'); return; }
         try {
-            const res = await fetch(`${this.api}/transactions`, {
+            const res = await fetch(`${this.api}/transactions/transfer`, {
                 method: 'POST',
                 headers: this.getHeaders(),
                 body: JSON.stringify({
-                    CustID: this.userId,
-                    Account_No: acctNo,
+                    SenderCustID: this.userId,
+                    ReceiverCustID: custId,
+                    ReceiverAccountNo: acctNo,
                     Amount: amount,
-                    PayMethod: mode,
-                    Description: `${mode} Transfer to Customer ${custId}`,
-                    Transaction_Type: 'DEBIT'
+                    PayMethod: mode
                 })
             });
             const data = await res.json();
@@ -1098,15 +1097,16 @@ class NexaBank {
             const container = document.getElementById('reg-cust-container');
             if (!custs.length) { container.innerHTML = '<p class="error-text">No customers found.</p>'; return; }
             container.innerHTML = `<div class="registry-table-wrap"><table class="registry-table">
-                <thead><tr><th>ID</th><th>Name</th><th>Contact</th><th>PAN</th><th>Type</th><th>KYC</th><th>Actions</th></tr></thead>
+                <thead><tr><th>S.No</th><th>CUST REF</th><th>Name</th><th>Contact</th><th>PAN</th><th>Type</th><th>KYC</th><th>Actions</th></tr></thead>
                 <tbody>${custs.map((c, i) => {
                     const isVip = i%4===0; const isCorp = i%3===0;
                     const type = isCorp ? 'CORPORATE' : isVip ? 'VIP' : 'INDIVIDUAL';
                     const kyc = i%2===0 ? 'VERIFIED' : (i%5===0 ? 'REVIEW' : 'PENDING');
                     return `
                     <tr>
-                        <td style="color:var(--text3)">NEX${c.Cust_ID+2000}</td>
-                        <td>${c.FName || ''} ${c.LName || ''}</td>
+                        <td style="color:var(--text3)">${c.RowNum || (i+1)}</td>
+                        <td style="color:var(--text3);font-family:monospace">CUST${String(c.Cust_ID).padStart(4,'0')}</td>
+                        <td><strong>${c.FName || ''} ${c.LName || ''}</strong></td>
                         <td style="color:var(--text3)">${c.ContactNo || '+91 90001 ' + String(c.Cust_ID).padStart(4,'0')}</td>
                         <td style="color:var(--text3)">${c.TaxID || (c.FName || 'A').substring(0,4).toUpperCase() + 'X' + c.Cust_ID + 'XX'}</td>
                         <td><span class="badge ${isCorp?'badge-gold':isVip?'badge-red':'badge-green'}" style="background:var(--bg3);color:var(--text2)">${type}</span></td>
@@ -1343,13 +1343,14 @@ class NexaBank {
         if (!wrap) return;
         if (!data.length) { wrap.innerHTML = '<p class="error-text">No matching customers.</p>'; return; }
         wrap.innerHTML = `<table class="registry-table">
-            <thead><tr><th>#</th><th>Customer</th><th>Email</th><th>Contact</th><th>ID Proof</th><th>PAN / TaxID</th><th>KYC Status</th><th>Action</th></tr></thead>
+            <thead><tr><th>S.No</th><th>CUST REF</th><th>Customer</th><th>Email</th><th>Contact</th><th>ID Proof</th><th>PAN / TaxID</th><th>KYC Status</th><th>Action</th></tr></thead>
             <tbody>${data.map((c,i) => {
                 const statusColor = c.kycStatus==='VERIFIED' ? '#16a34a' : c.kycStatus==='REJECTED' ? '#dc2626' : '#d97706';
                 const statusBg   = c.kycStatus==='VERIFIED' ? '#dcfce7' : c.kycStatus==='REJECTED' ? '#fee2e2' : '#fef3c7';
                 const icon       = c.kycStatus==='VERIFIED' ? 'fa-circle-check' : c.kycStatus==='REJECTED' ? 'fa-circle-xmark' : 'fa-clock';
                 return `<tr>
-                    <td style="color:var(--text3)">${c.Cust_ID}</td>
+                    <td style="color:var(--text3)">${c.RowNum || (i+1)}</td>
+                    <td style="color:var(--text3);font-family:monospace">CUST${String(c.Cust_ID).padStart(4,'0')}</td>
                     <td><strong>${c.FName} ${c.LName||''}</strong></td>
                     <td>${c.Email||'—'}</td>
                     <td>${c.ContactNo||'—'}</td>
@@ -1618,9 +1619,9 @@ class NexaBank {
                         ${isPending ? `
                             <button class="btn-approve" onclick="app.updateApprovalStatus('loan', ${l.LoanID}, 'APPROVED')">✓ Approve Loan</button>
                             <button class="btn-reject" onclick="app.updateApprovalStatus('loan', ${l.LoanID}, 'REJECTED')">✖ Reject</button>
-                            <button class="btn-review" onclick="app.showLoanReviewModal(${l.LoanID}, '${(l.CustName||'Customer').replace(/'/g,\"\")}', '${l.PickupLocation||'Personal'}', ${l.Requested_Amount||0}, ${l.LoanRate||8.5}, ${l.TenureMonths||36}, '${l.CreatedAt||''}')"><i class="fa-solid fa-magnifying-glass"></i> Full Review</button>
+                            <button class="btn-review" onclick="app.showLoanReviewModal(${l.LoanID}, '${(l.CustName||'Customer').replace(/'/g,``)}', '${l.PickupLocation||'Personal'}', ${l.Requested_Amount||0}, ${l.LoanRate||8.5}, ${l.TenureMonths||36}, '${l.CreatedAt||''}')"><i class="fa-solid fa-magnifying-glass"></i> Full Review</button>
                         ` : `
-                            <button class="btn-review" onclick="app.showLoanReviewModal(${l.LoanID}, '${(l.CustName||'Customer').replace(/'/g,\"\")}', '${l.PickupLocation||'Personal'}', ${l.Requested_Amount||0}, ${l.LoanRate||8.5}, ${l.TenureMonths||36}, '${l.CreatedAt||''}')"><i class="fa-solid fa-magnifying-glass"></i> Full Review</button>
+                            <button class="btn-review" onclick="app.showLoanReviewModal(${l.LoanID}, '${(l.CustName||'Customer').replace(/'/g,``)}', '${l.PickupLocation||'Personal'}', ${l.Requested_Amount||0}, ${l.LoanRate||8.5}, ${l.TenureMonths||36}, '${l.CreatedAt||''}')"><i class="fa-solid fa-magnifying-glass"></i> Full Review</button>
                             <button class="btn-review" onclick="app.updateApprovalStatus('loan', ${l.LoanID}, 'PENDING')"><i class="fa-solid fa-rotate-left"></i> Re-Open</button>
                         `}
                     </div>

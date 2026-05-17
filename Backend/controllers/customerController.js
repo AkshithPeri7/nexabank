@@ -2,7 +2,10 @@ const { db } = require('../config/db');
 
 exports.getAll = async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM BANK_CUSTOMER');
+    const [rows] = await db.query(`
+      SELECT *, ROW_NUMBER() OVER (ORDER BY Cust_ID) AS RowNum 
+      FROM BANK_CUSTOMER
+    `);
     res.json(rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
