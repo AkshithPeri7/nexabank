@@ -526,14 +526,14 @@ class NexaBank {
         <div class="cust-card">
             <div class="cust-card-header"><span class="cust-card-title">Quick Actions</span></div>
             <div class="qa-grid">
-                <button class="qa-btn" onclick="app.loadCustSection('transactions')"><div class="qa-icon">💸</div>Fund Transfer</button>
-                <button class="qa-btn" onclick="app.loadCustSection('loans')"><div class="qa-icon">📋</div>Apply Loan</button>
-                <button class="qa-btn" onclick="app.loadCustSection('accounts')"><div class="qa-icon">🏦</div>My Accounts</button>
-                <button class="qa-btn" onclick="app.loadCustSection('profile')"><div class="qa-icon">👤</div>My Profile</button>
-                <button class="qa-btn" onclick="app.loadCustSection('transactions')"><div class="qa-icon">📄</div>Statement</button>
-                <button class="qa-btn" onclick="app.showPage('open-account')"><div class="qa-icon">➕</div>Open Account</button>
-                <button class="qa-btn" onclick="app.loadCustSection('loans')"><div class="qa-icon">🔄</div>Loan Status</button>
-                <button class="qa-btn" onclick="app.loadCustSection('transactions')"><div class="qa-icon">🔍</div>Audit Log</button>
+                <button class="qa-btn" onclick="app.loadCustSection('transactions')"><div class="qa-icon"><i class="fa-solid fa-paper-plane"></i></div>Fund Transfer</button>
+                <button class="qa-btn" onclick="app.loadCustSection('loans')"><div class="qa-icon"><i class="fa-solid fa-file-contract"></i></div>Apply Loan</button>
+                <button class="qa-btn" onclick="app.loadCustSection('accounts')"><div class="qa-icon"><i class="fa-solid fa-building-columns"></i></div>My Accounts</button>
+                <button class="qa-btn" onclick="app.loadCustSection('profile')"><div class="qa-icon"><i class="fa-solid fa-user"></i></div>My Profile</button>
+                <button class="qa-btn" onclick="app.loadCustSection('transactions')"><div class="qa-icon"><i class="fa-solid fa-receipt"></i></div>Statement</button>
+                <button class="qa-btn" onclick="app.showPage('open-account')"><div class="qa-icon"><i class="fa-solid fa-plus"></i></div>Open Account</button>
+                <button class="qa-btn" onclick="app.loadCustSection('loans')"><div class="qa-icon"><i class="fa-solid fa-rotate"></i></div>Loan Status</button>
+                <button class="qa-btn" onclick="app.loadCustSection('transactions')"><div class="qa-icon"><i class="fa-solid fa-magnifying-glass"></i></div>Audit Log</button>
             </div>
         </div>
         <div class="cust-two-col">
@@ -947,7 +947,7 @@ class NexaBank {
             </div>
             <div style="display:flex; gap:0.75rem; align-items:center;">
                 <button class="theme-icon-btn" onclick="app.cycleTheme()" title="Switch Theme"><i class="fa-solid fa-circle-half-stroke"></i></button>
-                <button class="btn-auth-outline"><i class="fa-solid fa-chart-line"></i> Reports</button>
+                <button class="btn-auth-outline" onclick="app.loadEmpSection('reports')"><i class="fa-solid fa-chart-line"></i> Reports</button>
                 <button class="btn-auth-submit" onclick="app.loadEmpSection('loans')">Review Loans</button>
             </div>
         </div>
@@ -1134,11 +1134,13 @@ class NexaBank {
             const container = document.getElementById('reg-acct-container');
             if (!accts.length) { container.innerHTML = '<p class="error-text">No accounts found.</p>'; return; }
             container.innerHTML = `<div class="registry-table-wrap"><table class="registry-table">
-                <thead><tr><th>Account No</th><th>Customer ID</th><th>Type</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody>${accts.map(a => `
+                <thead><tr><th>S.No</th><th>Acct Ref</th><th>Customer</th><th>Cust ID</th><th>Type</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>${accts.map((a,i) => `
                     <tr>
-                        <td style="color:var(--text3)">#${a.Account_No}</td>
-                        <td style="font-weight:700">NEX${(a.CustID || 0)+2000}</td>
+                        <td style="color:var(--text3)">${a.RowNum || (i+1)}</td>
+                        <td style="color:var(--text3);font-family:monospace">AC${String(a.Account_No).padStart(6,'0')}</td>
+                        <td style="font-weight:600">${a.FName||''} ${a.LName||''}</td>
+                        <td style="color:var(--text2)">CUST${String(a.CustID||0).padStart(4,'0')}</td>
                         <td><span class="badge badge-gold" style="background:var(--bg3);color:var(--text2)">${a.AccountType || 'SAVINGS'}</span></td>
                         <td style="color:var(--gold2); font-size:0.95rem;">₹${this.fmt(a.Balance)}</td>
                         <td><span class="badge badge-green">ACTIVE</span></td>
@@ -1181,41 +1183,71 @@ class NexaBank {
     async renderEmpReports() {
         const el = document.getElementById('emp-main-content');
         el.innerHTML = `<div class="emp-dash-header" style="margin-bottom:1rem">
-            <div><h2 class="emp-dash-title">Reports & Analytics</h2><p class="emp-dash-sub">Bank performance metrics and compliance reports</p></div>
+            <div><h2 class="emp-dash-title">Reports & Analytics</h2><p class="emp-dash-sub">Live bank performance metrics</p></div>
             <div style="display:flex;gap:0.5rem;align-items:center;">
                 <button class="btn-auth-outline theme-icon-btn" onclick="app.cycleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
-                <button class="btn-auth-outline"><i class="fa-solid fa-download"></i> Export PDF</button>
             </div>
         </div>
-        
-        <div class="emp-grid-2col">
-            <div class="report-card">
-                <h3 class="report-card-title">Loan Portfolio Summary</h3>
-                <div class="progress-wrap"><div class="progress-lbl"><span>PENDING</span><span style="color:#d97706">2 loans · ₹6.0L</span></div><div class="progress-bar"><div class="progress-fill" style="width:40%; background:#d97706"></div></div></div>
-                <div class="progress-wrap"><div class="progress-lbl"><span>APPROVED</span><span style="color:#16a34a">1 loans · ₹20.0L</span></div><div class="progress-bar"><div class="progress-fill" style="width:70%; background:#16a34a"></div></div></div>
-                <div class="progress-wrap"><div class="progress-lbl"><span>REJECTED</span><span style="color:#dc2626">1 loans · ₹3.0L</span></div><div class="progress-bar"><div class="progress-fill" style="width:20%; background:#dc2626"></div></div></div>
-            </div>
-            <div class="report-card">
-                <h3 class="report-card-title">Transaction Breakdown</h3>
-                <div class="checklist-item" style="border:none; padding:0.5rem 0; background:none"><span class="badge badge-green">UPI</span> <span>₹15,000</span></div>
-                <div class="checklist-item" style="border:none; padding:0.5rem 0; background:none"><span class="badge badge-blue" style="background:#dbeafe;color:#2563eb">NEFT</span> <span>₹50,000</span></div>
-                <div class="checklist-item" style="border:none; padding:0.5rem 0; background:none"><span class="badge badge-red" style="background:#fee2e2;color:#dc2626">RTGS</span> <span>₹2,50,000</span></div>
-            </div>
-        </div>
-        
-        <div class="emp-stats-grid" style="margin-bottom:1.5rem">
-            <div class="emp-stat-box" style="padding:1rem 1.5rem"><div class="emp-stat-box-value">₹26.0L</div><div class="emp-stat-box-title">Total Loan Portfolio</div></div>
-            <div class="emp-stat-box" style="padding:1rem 1.5rem"><div class="emp-stat-box-value">₹68.2L</div><div class="emp-stat-box-title">Total Deposits</div></div>
-            <div class="emp-stat-box" style="padding:1rem 1.5rem"><div class="emp-stat-box-value">0%</div><div class="emp-stat-box-title">NPA Rate</div></div>
-        </div>
+        <div class="emp-stats-grid" style="margin-bottom:1.5rem" id="rpt-summary"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</p></div>
+        <div class="emp-grid-2col" id="rpt-charts"><p class="loading-text"></p></div>
+        <div class="report-card" id="rpt-compliance"></div>`;
 
-        <div class="report-card">
-            <h3 class="report-card-title">Compliance Checklist</h3>
-            <div class="checklist-item"><span style="color:var(--text)"><i class="fa-solid fa-check" style="color:#16a34a; margin-right:0.5rem"></i> RBI Monthly Returns Submitted</span><span style="color:#16a34a">Done</span></div>
-            <div class="checklist-item"><span style="color:var(--text)"><i class="fa-solid fa-check" style="color:#16a34a; margin-right:0.5rem"></i> KYC Compliance - 67% Complete</span><span style="color:#4b5563">In Progress</span></div>
-            <div class="checklist-item"><span style="color:var(--text)"><i class="fa-solid fa-hourglass-half" style="color:#d97706; margin-right:0.5rem"></i> Quarterly Audit - Due in 14 days</span><span style="color:#d97706">Pending</span></div>
-        </div>`;
+        try {
+            const h = this.getHeaders();
+            const [loansR, accsR, txnsR, custsR] = await Promise.all([
+                fetch(`${this.api}/loans`, { headers: h }).then(r=>r.json()).catch(()=>[]),
+                fetch(`${this.api}/accounts`, { headers: h }).then(r=>r.json()).catch(()=>[]),
+                fetch(`${this.api}/transactions`, { headers: h }).then(r=>r.json()).catch(()=>[]),
+                fetch(`${this.api}/customers`, { headers: h }).then(r=>r.json()).catch(()=>[])
+            ]);
+
+            const pending  = loansR.filter(l=>l.LoanStatus==='PENDING').length;
+            const approved = loansR.filter(l=>l.LoanStatus==='APPROVED').length;
+            const rejected = loansR.filter(l=>l.LoanStatus==='REJECTED').length;
+            const totalLoanAmt = loansR.reduce((s,l)=>s+(parseFloat(l.Requested_Amount)||0),0);
+            const approvedAmt  = loansR.filter(l=>l.LoanStatus==='APPROVED').reduce((s,l)=>s+(parseFloat(l.Requested_Amount)||0),0);
+            const pendingAmt   = loansR.filter(l=>l.LoanStatus==='PENDING').reduce((s,l)=>s+(parseFloat(l.Requested_Amount)||0),0);
+            const rejectedAmt  = loansR.filter(l=>l.LoanStatus==='REJECTED').reduce((s,l)=>s+(parseFloat(l.Requested_Amount)||0),0);
+            const totalDeposits = accsR.reduce((s,a)=>s+(parseFloat(a.Balance)||0),0);
+            const totalTxns = txnsR.length;
+            const creditTxns = txnsR.filter(t=>t.TransactionType==='CREDIT'||t.Type==='CREDIT').reduce((s,t)=>s+(parseFloat(t.Amount)||0),0);
+            const debitTxns  = txnsR.filter(t=>t.TransactionType==='DEBIT'||t.Type==='DEBIT').reduce((s,t)=>s+(parseFloat(t.Amount)||0),0);
+            const kycComplete = custsR.filter(c=>c.Email&&c.ContactNo&&c.TaxID).length;
+
+            document.getElementById('rpt-summary').innerHTML = `
+                <div class="emp-stat-box" style="padding:1rem 1.5rem"><div class="emp-stat-box-value">₹${this.fmt(totalDeposits)}</div><div class="emp-stat-box-title">Total Deposits</div></div>
+                <div class="emp-stat-box" style="padding:1rem 1.5rem"><div class="emp-stat-box-value">₹${this.fmt(totalLoanAmt)}</div><div class="emp-stat-box-title">Total Loan Portfolio</div></div>
+                <div class="emp-stat-box" style="padding:1rem 1.5rem"><div class="emp-stat-box-value">${totalTxns}</div><div class="emp-stat-box-title">Total Transactions</div></div>
+                <div class="emp-stat-box" style="padding:1rem 1.5rem"><div class="emp-stat-box-value">${custsR.length}</div><div class="emp-stat-box-title">Total Customers</div></div>`;
+
+            const maxLoan = Math.max(approvedAmt, pendingAmt, rejectedAmt, 1);
+            document.getElementById('rpt-charts').innerHTML = `
+                <div class="report-card">
+                    <h3 class="report-card-title">Loan Portfolio Breakdown</h3>
+                    <div class="progress-wrap"><div class="progress-lbl"><span>PENDING (${pending})</span><span style="color:#d97706">₹${this.fmt(pendingAmt)}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${Math.round(pendingAmt/maxLoan*100)}%;background:#d97706"></div></div></div>
+                    <div class="progress-wrap"><div class="progress-lbl"><span>APPROVED (${approved})</span><span style="color:#16a34a">₹${this.fmt(approvedAmt)}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${Math.round(approvedAmt/maxLoan*100)}%;background:#16a34a"></div></div></div>
+                    <div class="progress-wrap"><div class="progress-lbl"><span>REJECTED (${rejected})</span><span style="color:#dc2626">₹${this.fmt(rejectedAmt)}</span></div><div class="progress-bar"><div class="progress-fill" style="width:${Math.round(rejectedAmt/maxLoan*100)}%;background:#dc2626"></div></div></div>
+                </div>
+                <div class="report-card">
+                    <h3 class="report-card-title">Transaction Flow</h3>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">Total Transactions</span><strong style="color:var(--text)">${totalTxns}</strong></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 0;border-bottom:1px solid var(--border)"><span style="color:var(--text2)">Total Credits</span><strong style="color:#16a34a">+₹${this.fmt(creditTxns)}</strong></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 0"><span style="color:var(--text2)">Total Debits</span><strong style="color:#dc2626">-₹${this.fmt(debitTxns)}</strong></div>
+                    <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);display:flex;justify-content:space-between"><span style="color:var(--text2);font-weight:600">Net Flow</span><strong style="color:${creditTxns>=debitTxns?'#16a34a':'#dc2626'}">₹${this.fmt(creditTxns-debitTxns)}</strong></div>
+                </div>`;
+
+            const kycPct = custsR.length ? Math.round(kycComplete/custsR.length*100) : 0;
+            document.getElementById('rpt-compliance').innerHTML = `
+                <h3 class="report-card-title">Compliance Checklist</h3>
+                <div class="checklist-item"><span style="color:var(--text)"><i class="fa-solid fa-check" style="color:#16a34a;margin-right:0.5rem"></i>RBI Monthly Returns — System Active</span><span style="color:#16a34a">Done</span></div>
+                <div class="checklist-item"><span style="color:var(--text)"><i class="${kycPct>=80?'fa-solid fa-check':'fa-solid fa-hourglass-half'}" style="color:${kycPct>=80?'#16a34a':'#d97706'};margin-right:0.5rem"></i>KYC Compliance — ${kycPct}% Complete (${kycComplete}/${custsR.length} customers)</span><span style="color:${kycPct>=80?'#16a34a':'#d97706'}">${kycPct>=80?'Compliant':'In Progress'}</span></div>
+                <div class="checklist-item"><span style="color:var(--text)"><i class="fa-solid fa-${pending>0?'triangle-exclamation':'check'}" style="color:${pending>0?'#d97706':'#16a34a'};margin-right:0.5rem"></i>Loan Approvals — ${pending} pending review</span><span style="color:${pending>0?'#d97706':'#16a34a'}">${pending>0?'Action Needed':'Clear'}</span></div>
+                <div class="checklist-item"><span style="color:var(--text)"><i class="fa-solid fa-check" style="color:#16a34a;margin-right:0.5rem"></i>Total Accounts Active — ${accsR.length}</span><span style="color:#16a34a">Healthy</span></div>`;
+        } catch(e) {
+            document.getElementById('rpt-summary').innerHTML = '<p class="error-text">Failed to load report data.</p>';
+        }
     }
+
 
     async renderEmpAudit() {
         const el = document.getElementById('emp-main-content');
@@ -1255,8 +1287,250 @@ class NexaBank {
         } catch { document.getElementById('reg-audit-container').innerHTML = `<p class="error-text">Failed to load logs</p>`; }
     }
 
-    async renderEmpKyc() { this.renderEmpAudit(); } // Placeholder
-    async renderEmpEmployees() { this.renderEmpAudit(); } // Placeholder
+    async renderEmpKyc() {
+        const el = document.getElementById('emp-main-content');
+        el.innerHTML = `<div class="emp-dash-header" style="margin-bottom:1rem">
+            <div><h2 class="emp-dash-title">KYC Verification</h2><p class="emp-dash-sub">Review and verify customer identity documents</p></div>
+            <button class="btn-auth-outline theme-icon-btn" onclick="app.cycleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.5rem">
+            <div class="emp-stat-box" style="border-top:4px solid #16a34a">
+                <div class="emp-stat-box-title">Verified</div><div class="emp-stat-box-value" id="kyc-verified">—</div></div>
+            <div class="emp-stat-box" style="border-top:4px solid #d97706">
+                <div class="emp-stat-box-title">Pending Review</div><div class="emp-stat-box-value" id="kyc-pending">—</div></div>
+            <div class="emp-stat-box" style="border-top:4px solid #dc2626">
+                <div class="emp-stat-box-title">Rejected / Incomplete</div><div class="emp-stat-box-value" id="kyc-rejected">—</div></div>
+        </div>
+        <div class="registry-toolbar">
+            <div class="registry-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--text3)"></i>
+                <input type="text" id="kyc-search" placeholder="Search customer..." oninput="app.filterKycTable()"></div>
+            <select class="registry-filter" id="kyc-status-filter" onchange="app.filterKycTable()">
+                <option value="ALL">All Statuses</option>
+                <option value="VERIFIED">Verified</option>
+                <option value="PENDING">Pending</option>
+                <option value="REJECTED">Rejected</option>
+            </select>
+        </div>
+        <div class="registry-table-wrap" id="kyc-table-wrap"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</p></div>`;
+
+        try {
+            const res = await fetch(`${this.api}/customers`, { headers: this.getHeaders() });
+            const custs = await res.json();
+            if (!custs.length) { document.getElementById('kyc-table-wrap').innerHTML = '<p class="error-text">No customers found.</p>'; return; }
+
+            // Assign deterministic KYC status based on data completeness
+            this._kycData = custs.map(c => {
+                let status = 'PENDING';
+                const hasBasics = c.FName && c.Email;
+                const hasId     = c.TaxID || c.DrivingLicence || c.CustIDProofType;
+                const hasContact = c.ContactNo;
+                if (hasBasics && hasId && hasContact) status = 'VERIFIED';
+                else if (!hasBasics) status = 'REJECTED';
+                return { ...c, kycStatus: status };
+            });
+
+            document.getElementById('kyc-verified').textContent  = this._kycData.filter(c=>c.kycStatus==='VERIFIED').length;
+            document.getElementById('kyc-pending').textContent   = this._kycData.filter(c=>c.kycStatus==='PENDING').length;
+            document.getElementById('kyc-rejected').textContent  = this._kycData.filter(c=>c.kycStatus==='REJECTED').length;
+            this._renderKycTable(this._kycData);
+        } catch(e) {
+            document.getElementById('kyc-table-wrap').innerHTML = '<p class="error-text">Failed to load KYC data.</p>';
+        }
+    }
+
+    _renderKycTable(data) {
+        const wrap = document.getElementById('kyc-table-wrap');
+        if (!wrap) return;
+        if (!data.length) { wrap.innerHTML = '<p class="error-text">No matching customers.</p>'; return; }
+        wrap.innerHTML = `<table class="registry-table">
+            <thead><tr><th>#</th><th>Customer</th><th>Email</th><th>Contact</th><th>ID Proof</th><th>PAN / TaxID</th><th>KYC Status</th><th>Action</th></tr></thead>
+            <tbody>${data.map((c,i) => {
+                const statusColor = c.kycStatus==='VERIFIED' ? '#16a34a' : c.kycStatus==='REJECTED' ? '#dc2626' : '#d97706';
+                const statusBg   = c.kycStatus==='VERIFIED' ? '#dcfce7' : c.kycStatus==='REJECTED' ? '#fee2e2' : '#fef3c7';
+                const icon       = c.kycStatus==='VERIFIED' ? 'fa-circle-check' : c.kycStatus==='REJECTED' ? 'fa-circle-xmark' : 'fa-clock';
+                return `<tr>
+                    <td style="color:var(--text3)">${c.Cust_ID}</td>
+                    <td><strong>${c.FName} ${c.LName||''}</strong></td>
+                    <td>${c.Email||'—'}</td>
+                    <td>${c.ContactNo||'—'}</td>
+                    <td><span class="badge badge-gold" style="background:#f3f4f6;color:#374151">${c.CustIDProofType||'AADHAAR'}</span></td>
+                    <td>${c.TaxID||'—'}</td>
+                    <td><span style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.3rem 0.75rem;border-radius:99px;font-size:0.78rem;font-weight:700;background:${statusBg};color:${statusColor}">
+                        <i class="fa-solid ${icon}"></i>${c.kycStatus}</span></td>
+                    <td style="display:flex;gap:0.5rem">
+                        ${c.kycStatus!=='VERIFIED' ? `<button class="btn-approve" style="font-size:0.78rem;padding:0.35rem 0.75rem" onclick="app.setKycStatus(${c.Cust_ID},'VERIFIED')"><i class="fa-solid fa-check"></i> Verify</button>` : ''}
+                        ${c.kycStatus!=='REJECTED' ? `<button class="btn-reject" style="font-size:0.78rem;padding:0.35rem 0.75rem" onclick="app.setKycStatus(${c.Cust_ID},'REJECTED')"><i class="fa-solid fa-xmark"></i> Reject</button>` : ''}
+                        <button class="btn-review" style="font-size:0.78rem;padding:0.35rem 0.75rem" onclick="app.showKycDetailModal(${c.Cust_ID})"><i class="fa-solid fa-eye"></i> View</button>
+                    </td></tr>`;
+            }).join('')}</tbody></table>`;
+    }
+
+    filterKycTable() {
+        if (!this._kycData) return;
+        const q      = (document.getElementById('kyc-search')?.value||'').toLowerCase();
+        const status = document.getElementById('kyc-status-filter')?.value||'ALL';
+        const filtered = this._kycData.filter(c => {
+            const matchQ = !q || `${c.FName} ${c.LName||''} ${c.Email||''}`.toLowerCase().includes(q);
+            const matchS = status==='ALL' || c.kycStatus===status;
+            return matchQ && matchS;
+        });
+        this._renderKycTable(filtered);
+    }
+
+    setKycStatus(custId, status) {
+        if (!this._kycData) return;
+        this._kycData = this._kycData.map(c => c.Cust_ID===custId ? {...c, kycStatus: status} : c);
+        document.getElementById('kyc-verified').textContent  = this._kycData.filter(c=>c.kycStatus==='VERIFIED').length;
+        document.getElementById('kyc-pending').textContent   = this._kycData.filter(c=>c.kycStatus==='PENDING').length;
+        document.getElementById('kyc-rejected').textContent  = this._kycData.filter(c=>c.kycStatus==='REJECTED').length;
+        this.filterKycTable();
+    }
+
+    showKycDetailModal(custId) {
+        const c = this._kycData?.find(x => x.Cust_ID===custId);
+        if (!c) return;
+        const old = document.getElementById('kycDetailModal'); if(old) old.remove();
+        const ov = document.createElement('div');
+        ov.id = 'kycDetailModal';
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)';
+        ov.innerHTML = `<div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:2rem;width:100%;max-width:480px;animation:authFadeIn 0.3s ease-out">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+                <h3 style="font-size:1.2rem;font-weight:800;color:var(--text)"><i class="fa-solid fa-id-card" style="color:var(--gold2);margin-right:0.5rem"></i>KYC Document Review</h3>
+                <button onclick="document.getElementById('kycDetailModal').remove()" style="background:none;border:none;color:var(--text3);font-size:1.2rem;cursor:pointer">✕</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+                <div><div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.25rem">Full Name</div><div style="font-weight:600;color:var(--text)">${c.FName} ${c.LName||''}</div></div>
+                <div><div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.25rem">Customer ID</div><div style="font-weight:600;color:var(--text)">CUST${String(c.Cust_ID).padStart(4,'0')}</div></div>
+                <div><div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.25rem">Email</div><div style="color:var(--text)">${c.Email||'—'}</div></div>
+                <div><div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.25rem">Mobile</div><div style="color:var(--text)">${c.ContactNo||'—'}</div></div>
+                <div><div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.25rem">Date of Birth</div><div style="color:var(--text)">${c.CustDOB ? new Date(c.CustDOB).toLocaleDateString() : '—'}</div></div>
+                <div><div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.25rem">ID Proof Type</div><div style="color:var(--text)">${c.CustIDProofType||'AADHAAR'}</div></div>
+                <div><div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.25rem">PAN / Tax ID</div><div style="color:var(--text)">${c.TaxID||'—'}</div></div>
+                <div><div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.25rem">Customer Type</div><div style="color:var(--text)">${c.CustomerType||'INDIVIDUAL'}</div></div>
+            </div>
+            <div style="background:var(--bg2);border-radius:10px;padding:1rem;margin-bottom:1.5rem;font-size:0.85rem;color:var(--text3)">
+                <i class="fa-solid fa-circle-info" style="color:var(--gold2);margin-right:0.4rem"></i>
+                KYC verification confirms identity documents match bank records. Once verified, the customer gains full banking privileges.
+            </div>
+            <div style="display:flex;gap:0.75rem">
+                <button onclick="app.setKycStatus(${c.Cust_ID},'VERIFIED');document.getElementById('kycDetailModal').remove()" class="btn-approve" style="flex:1"><i class="fa-solid fa-check"></i> Mark Verified</button>
+                <button onclick="app.setKycStatus(${c.Cust_ID},'REJECTED');document.getElementById('kycDetailModal').remove()" class="btn-reject" style="flex:1"><i class="fa-solid fa-xmark"></i> Reject</button>
+            </div></div>`;
+        document.body.appendChild(ov);
+    }
+
+    showLoanReviewModal(loanId, custName, loanType, amount, rate, tenure, createdAt) {
+        const old = document.getElementById('loanReviewModal'); if(old) old.remove();
+        const emi = amount && rate && tenure ? ((amount * (rate/1200) * Math.pow(1+rate/1200, tenure)) / (Math.pow(1+rate/1200, tenure)-1)).toFixed(0) : 0;
+        const totalPay = emi * tenure;
+        const totalInt = totalPay - amount;
+        const ov = document.createElement('div');
+        ov.id = 'loanReviewModal';
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)';
+        ov.innerHTML = `<div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:2rem;width:100%;max-width:500px;animation:authFadeIn 0.3s ease-out;max-height:90vh;overflow-y:auto">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+                <h3 style="font-size:1.2rem;font-weight:800;color:var(--text)"><i class="fa-solid fa-file-contract" style="color:var(--gold2);margin-right:0.5rem"></i>Loan Full Review</h3>
+                <button onclick="document.getElementById('loanReviewModal').remove()" style="background:none;border:none;color:var(--text3);font-size:1.2rem;cursor:pointer">✕</button>
+            </div>
+            <div style="background:var(--bg2);border-radius:10px;padding:1rem;margin-bottom:1rem">
+                <div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.5rem">Application Reference</div>
+                <div style="font-size:1.1rem;font-weight:800;color:var(--gold2)">LN${String(loanId).padStart(4,'0')}</div>
+                <div style="color:var(--text2);font-size:0.85rem;margin-top:0.2rem">Applicant: ${custName} &nbsp;|&nbsp; Type: ${loanType} &nbsp;|&nbsp; Applied: ${createdAt ? new Date(createdAt).toLocaleDateString() : 'N/A'}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+                <div style="background:var(--bg2);border-radius:10px;padding:1rem;text-align:center">
+                    <div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.4rem">Loan Amount</div>
+                    <div style="font-size:1.3rem;font-weight:900;color:var(--text)">₹${this.fmt(amount)}</div></div>
+                <div style="background:var(--bg2);border-radius:10px;padding:1rem;text-align:center">
+                    <div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.4rem">Interest Rate</div>
+                    <div style="font-size:1.3rem;font-weight:900;color:var(--text)">${rate}% p.a.</div></div>
+                <div style="background:var(--bg2);border-radius:10px;padding:1rem;text-align:center">
+                    <div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.4rem">Tenure</div>
+                    <div style="font-size:1.3rem;font-weight:900;color:var(--text)">${tenure} months</div></div>
+                <div style="background:var(--bg2);border-radius:10px;padding:1rem;text-align:center">
+                    <div style="font-size:0.7rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.4rem">Monthly EMI</div>
+                    <div style="font-size:1.3rem;font-weight:900;color:#16a34a">₹${this.fmt(emi)}</div></div>
+            </div>
+            <div style="background:rgba(240,192,64,0.08);border:1px solid var(--gold2);border-radius:10px;padding:1rem;margin-bottom:1.5rem">
+                <div style="display:flex;justify-content:space-between;font-size:0.88rem;color:var(--text2);margin-bottom:0.4rem"><span>Total Repayment</span><span style="font-weight:700;color:var(--text)">₹${this.fmt(totalPay)}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:0.88rem;color:var(--text2)"><span>Total Interest Charged</span><span style="font-weight:700;color:#dc2626">₹${this.fmt(totalInt)}</span></div>
+            </div>
+            <div style="display:flex;gap:0.75rem">
+                <button onclick="app.updateApprovalStatus('loan',${loanId},'APPROVED');document.getElementById('loanReviewModal').remove()" class="btn-approve" style="flex:1"><i class="fa-solid fa-check"></i> Approve</button>
+                <button onclick="app.updateApprovalStatus('loan',${loanId},'REJECTED');document.getElementById('loanReviewModal').remove()" class="btn-reject" style="flex:1"><i class="fa-solid fa-xmark"></i> Reject</button>
+                <button onclick="document.getElementById('loanReviewModal').remove()" class="btn-review" style="flex:1">Close</button>
+            </div></div>`;
+        document.body.appendChild(ov);
+    }
+
+    async renderEmpEmployees() {
+        const el = document.getElementById('emp-main-content');
+        el.innerHTML = `<div class="emp-dash-header" style="margin-bottom:1rem">
+            <div><h2 class="emp-dash-title">Employee Registry</h2><p class="emp-dash-sub">All NexaBank staff and their details</p></div>
+            <button class="btn-auth-outline theme-icon-btn" onclick="app.cycleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
+        </div>
+        <div class="registry-toolbar">
+            <div class="registry-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--text3)"></i>
+                <input type="text" id="emp-search" placeholder="Search employee..." oninput="app.filterEmpTable()"></div>
+            <select class="registry-filter" id="emp-dept-filter" onchange="app.filterEmpTable()">
+                <option value="ALL">All Departments</option>
+                <option value="Technology">Technology</option>
+                <option value="Loans">Loans &amp; Credit</option>
+                <option value="Customer">Customer Relations</option>
+                <option value="Management">Management</option>
+                <option value="Compliance">Compliance &amp; KYC</option>
+                <option value="Finance">Finance &amp; Accounts</option>
+                <option value="Operations">Operations</option>
+                <option value="Risk">Risk Management</option>
+            </select>
+        </div>
+        <div class="registry-table-wrap" id="emp-table-wrap"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</p></div>`;
+
+        try {
+            const res = await fetch(`${this.api}/employees`, { headers: this.getHeaders() });
+            const emps = await res.json();
+            this._empData = emps;
+            this._renderEmpTable(emps);
+        } catch(e) {
+            document.getElementById('emp-table-wrap').innerHTML = '<p class="error-text">Failed to load employee data.</p>';
+        }
+    }
+
+    _renderEmpTable(data) {
+        const wrap = document.getElementById('emp-table-wrap');
+        if (!wrap) return;
+        if (!data.length) { wrap.innerHTML = '<p class="error-text">No employees found.</p>'; return; }
+        wrap.innerHTML = `<table class="registry-table">
+            <thead><tr>
+                <th>S.No</th><th>EMP ID</th><th>Name</th><th>Email</th><th>Department</th>
+                <th>Role</th><th>City</th><th>Contact</th><th>Salary</th><th>Joined</th>
+            </tr></thead>
+            <tbody>${data.map((e, i) => `<tr>
+                <td style="color:var(--text3)">${e.RowNum || (i + 1)}</td>
+                <td style="color:var(--text3);font-weight:700">EMP${String(e.EID).padStart(3,'0')}</td>
+                <td><strong>${e.Name} ${e.LName||''}</strong></td>
+                <td style="color:var(--text2)">${e.Email || '—'}</td>
+                <td><span style="display:inline-block;padding:0.2rem 0.6rem;background:rgba(240,192,64,0.12);color:var(--gold2);border-radius:6px;font-size:0.75rem;font-weight:700">${e.D_und || '—'}</span></td>
+                <td style="font-size:0.85rem;color:var(--text2)">${e.Responsibility || '—'}</td>
+                <td>${e.City || '—'}</td>
+                <td style="font-size:0.85rem">${e.ContactNo || '—'}</td>
+                <td style="color:var(--gold2);font-weight:700">₹${this.fmt(e.Salary)}</td>
+                <td style="color:var(--text3);font-size:0.82rem">${e.JoinedDate ? new Date(e.JoinedDate).toLocaleDateString('en-IN',{year:'numeric',month:'short',day:'numeric'}) : '—'}</td>
+            </tr>`).join('')}</tbody>
+        </table>`;
+    }
+
+    filterEmpTable() {
+        if (!this._empData) return;
+        const q    = (document.getElementById('emp-search')?.value || '').toLowerCase();
+        const dept = document.getElementById('emp-dept-filter')?.value || 'ALL';
+        const filtered = this._empData.filter(e => {
+            const matchQ = !q || `${e.Name} ${e.LName||''} ${e.Email||''} ${e.Responsibility||''}`.toLowerCase().includes(q);
+            const matchD = dept === 'ALL' || (e.D_und||'').includes(dept);
+            return matchQ && matchD;
+        });
+        this._renderEmpTable(filtered);
+    }
 
     async updateApprovalStatus(type, id, status) {
         if (!confirm(`Are you sure you want to ${status.toLowerCase()} this request?`)) return;
@@ -1344,9 +1618,9 @@ class NexaBank {
                         ${isPending ? `
                             <button class="btn-approve" onclick="app.updateApprovalStatus('loan', ${l.LoanID}, 'APPROVED')">✓ Approve Loan</button>
                             <button class="btn-reject" onclick="app.updateApprovalStatus('loan', ${l.LoanID}, 'REJECTED')">✖ Reject</button>
-                            <button class="btn-review"><i class="fa-solid fa-magnifying-glass"></i> Full Review</button>
+                            <button class="btn-review" onclick="app.showLoanReviewModal(${l.LoanID}, '${(l.CustName||'Customer').replace(/'/g,\"\")}', '${l.PickupLocation||'Personal'}', ${l.Requested_Amount||0}, ${l.LoanRate||8.5}, ${l.TenureMonths||36}, '${l.CreatedAt||''}')"><i class="fa-solid fa-magnifying-glass"></i> Full Review</button>
                         ` : `
-                            <button class="btn-review"><i class="fa-solid fa-magnifying-glass"></i> Full Review</button>
+                            <button class="btn-review" onclick="app.showLoanReviewModal(${l.LoanID}, '${(l.CustName||'Customer').replace(/'/g,\"\")}', '${l.PickupLocation||'Personal'}', ${l.Requested_Amount||0}, ${l.LoanRate||8.5}, ${l.TenureMonths||36}, '${l.CreatedAt||''}')"><i class="fa-solid fa-magnifying-glass"></i> Full Review</button>
                             <button class="btn-review" onclick="app.updateApprovalStatus('loan', ${l.LoanID}, 'PENDING')"><i class="fa-solid fa-rotate-left"></i> Re-Open</button>
                         `}
                     </div>

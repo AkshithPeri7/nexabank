@@ -954,7 +954,7 @@ html { scroll-behavior: smooth; }
 }
 [data-theme="dark"] .qa-btn { background: var(--bg3); border-color: var(--border); color: var(--text2); }
 .qa-btn:hover { border-color: #f0c040; background: rgba(240,192,64,0.05); color: #111; transform: translateY(-2px); }
-.qa-icon { font-size: 1.6rem; }
+.qa-icon { font-size: 1.1rem; line-height: 1; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; color: var(--gold2); }
 
 /* Two col */
 .cust-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
@@ -1981,3 +1981,72 @@ html { scroll-behavior: smooth; }
     display: flex;
     gap: 0.5rem;
 }
+
+/* ================================================================
+   NEXABANK — GLOBAL ICON SIZE FIXES (compact & clean)
+   ================================================================ */
+
+/* Sidebar nav icons — small and tight */
+.cust-nav-link i { width: 16px; font-size: 0.85rem !important; text-align: center; flex-shrink: 0; }
+.sidebar-link i { font-size: 0.9rem !important; width: 18px; text-align: center; flex-shrink: 0; }
+.sidebar-logout i { font-size: 0.9rem !important; }
+.cust-signout i { font-size: 0.85rem !important; }
+
+/* Feature card icons — balanced */
+.feat-icon { font-size: 1.25rem; width: 44px; height: 44px; border-radius: 10px; }
+.feat-icon i { font-size: 1.25rem !important; }
+
+/* Quick action buttons — slightly larger for tap targets */
+.qa-icon { font-size: 1.3rem !important; line-height: 1; }
+
+/* Transaction row icons — compact circle */
+.dash-txn-icon { width: 34px; height: 34px; font-size: 0.8rem !important; flex-shrink: 0; }
+
+/* Dashboard list icons */
+.sli-icon { width: 34px; height: 34px; border-radius: 8px; font-size: 0.8rem !important; flex-shrink: 0; }
+
+/* Modal icons */
+.nexa-modal-icon { width: 44px; height: 44px; border-radius: 12px; font-size: 1.1rem !important; }
+
+/* Admin auth / success icons */
+.admin-auth-icon { font-size: 1.75rem !important; }
+.success-icon { font-size: 3.5rem !important; }
+
+/* Theme toggle icons */
+.theme-icon-btn { font-size: 0.9rem !important; width: 36px; height: 36px; }
+.cust-theme-btn button { font-size: 0.85rem !important; width: 34px; height: 34px; }
+
+/* Form input prefix icons */
+.input-wrap i { font-size: 0.85rem !important; width: 16px; text-align: center; flex-shrink: 0; }
+
+/* Button inline icons — keep in proportion with text */
+.btn-quick-transfer i { font-size: 0.8rem !important; }
+.btn-auth-submit i { font-size: 0.9rem !important; }
+.btn-admin-submit i { font-size: 0.9rem !important; }
+.btn-new-txn i { font-size: 0.85rem !important; }
+.btn-hero-primary i, .btn-hero-outline i { font-size: 0.9rem !important; }
+
+/* Mobile hamburger icon */
+.mobile-menu-btn i { font-size: 1rem !important; }
+
+/* User avatar initials */
+.cust-user-avatar { font-size: 0.95rem; }
+
+/* Prevent FontAwesome from auto-scaling icons in flex containers */
+button i.fa-solid, button i.fa-regular, button i.fa-brands,
+a i.fa-solid, a i.fa-regular {
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+/* Stat cards — no oversized icons */
+.cust-stat i, .stat-card i { font-size: 0.9rem !important; }
+
+/* Loan / credit card filter bar */
+.loan-filter-bar i { font-size: 0.8rem !important; }
+
+/* Table badges */
+.tbl-badge i { font-size: 0.7rem !important; }
+
+

@@ -4,7 +4,8 @@ exports.getAll = async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT EID, Name, LName, Email, Salary, D_und, JoinedDate,
-              Responsibility, BranchID, City, Country, Address, ContactNo
+              Responsibility, BranchID, City, Country, Address, ContactNo,
+              ROW_NUMBER() OVER (ORDER BY EID) AS RowNum
        FROM BANK_EMPLOYEE ORDER BY EID`
     );
     res.json(rows);
