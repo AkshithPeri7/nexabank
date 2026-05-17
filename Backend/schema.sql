@@ -20,6 +20,7 @@ CREATE TABLE BANK_EMPLOYEE (
   EID            INT PRIMARY KEY AUTO_INCREMENT,
   Name           VARCHAR(100),
   LName          VARCHAR(100),
+  Email          VARCHAR(150),
   Salary         DECIMAL(10,2),
   D_und          VARCHAR(100),
   JoinedDate     DATE,

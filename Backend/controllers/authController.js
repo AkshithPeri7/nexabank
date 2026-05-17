@@ -47,45 +47,81 @@ exports.login = async (req, res) => {
         const { type, fName, password } = req.body;
         if (!type || !fName || !password) return res.status(400).json({ error: 'All fields are required.' });
 
-        const table     = type === 'employee' ? 'BANK_EMPLOYEE' : 'BANK_CUSTOMER';
-        const nameField = type === 'employee' ? 'Name' : 'FName';
-        const idField   = type === 'employee' ? 'EID' : 'Cust_ID';
+        let rows;
 
-        let query = `SELECT * FROM ${table} WHERE ${nameField} = ? LIMIT 1`;
-        let params = [fName];
+        if (type === 'employee') {
+            // Accept: email, numeric EID, or first name
+            const isEmail   = fName.includes('@');
+            const isNumeric = !isNaN(fName) && fName.trim() !== '';
 
-        if (!isNaN(fName)) {
-            query = `SELECT * FROM ${table} WHERE ${idField} = ? OR ${nameField} = ? LIMIT 1`;
-            params = [parseInt(fName), fName];
+            if (isEmail) {
+                [rows] = await db.query(
+                    `SELECT * FROM BANK_EMPLOYEE WHERE Email = ? LIMIT 1`, [fName]
+                );
+            } else if (isNumeric) {
+                [rows] = await db.query(
+                    `SELECT * FROM BANK_EMPLOYEE WHERE EID = ? OR Name = ? LIMIT 1`,
+                    [parseInt(fName), fName]
+                );
+            } else {
+                [rows] = await db.query(
+                    `SELECT * FROM BANK_EMPLOYEE WHERE Name = ? LIMIT 1`, [fName]
+                );
+            }
+        } else {
+            // Customer: accept email or first name
+            const isEmail   = fName.includes('@');
+            const isNumeric = !isNaN(fName) && fName.trim() !== '';
+
+            if (isEmail) {
+                [rows] = await db.query(
+                    `SELECT * FROM BANK_CUSTOMER WHERE Email = ? LIMIT 1`, [fName]
+                );
+            } else if (isNumeric) {
+                [rows] = await db.query(
+                    `SELECT * FROM BANK_CUSTOMER WHERE Cust_ID = ? OR FName = ? LIMIT 1`,
+                    [parseInt(fName), fName]
+                );
+            } else {
+                [rows] = await db.query(
+                    `SELECT * FROM BANK_CUSTOMER WHERE FName = ? LIMIT 1`, [fName]
+                );
+            }
         }
 
-        const [rows] = await db.query(query, params);
-        if (!rows.length) return res.status(400).json({ error: 'No account found. Please sign up first.' });
+        if (!rows || !rows.length) return res.status(400).json({ error: 'No account found. Check your email / ID and try again.' });
 
         const user = rows[0];
-        if (!user.PasswordHash) return res.status(400).json({ error: 'No password set. Please re-register.' });
+        if (!user.PasswordHash) return res.status(400).json({ error: 'No password set for this account. Please contact admin.' });
 
         const isMatch = await bcrypt.compare(password, user.PasswordHash);
         if (!isMatch) return res.status(400).json({ error: 'Incorrect password.' });
 
-        const userId = type === 'employee' ? user.EID : user.Cust_ID;
-        const token  = jwt.sign({ id: userId, type }, process.env.JWT_SECRET || 'nexabank_2024', { expiresIn: '8h' });
+        const idField  = type === 'employee' ? 'EID' : 'Cust_ID';
+        const nameField = type === 'employee' ? 'Name' : 'FName';
+        const userId   = user[idField];
+        const token    = jwt.sign({ id: userId, type }, process.env.JWT_SECRET || 'nexabank_2024', { expiresIn: '8h' });
 
         if (type === 'employee') {
             try {
                 await db.query(
                     `INSERT INTO AUDIT_LOG_ENTRY (Event, Reference, LogDetails, Officer) VALUES (?, ?, ?, ?)`,
-                    ['LOGIN', '—', `${user[nameField]} logged in`, `EMP${userId}`]
+                    ['LOGIN', '—', `${user[nameField]} logged in via ${fName.includes('@') ? 'email' : 'username'}`, `EMP${userId}`]
                 );
             } catch(e) { console.error('Audit log error:', e); }
         }
 
-        res.json({ token, message: 'Logged in successfully.', user: { fName: user[nameField], lName: user.LName, id: userId } });
+        res.json({
+            token,
+            message: 'Logged in successfully.',
+            user: { fName: user[nameField], lName: user.LName, id: userId, email: user.Email || null }
+        });
     } catch (err) {
         console.error('Login Error:', err.message);
         res.status(500).json({ error: 'Server error during login.' });
     }
 };
+
 
 // ─── GOOGLE LOGIN (SUPABASE) ──────────────────────────────────────
 exports.googleLogin = async (req, res) => {

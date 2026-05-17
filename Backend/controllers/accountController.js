@@ -3,7 +3,9 @@ const { db } = require('../config/db');
 exports.getAll = async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT a.*, c.FName, c.LName FROM ACCOUNT a
+      SELECT a.*, c.FName, c.LName,
+             ROW_NUMBER() OVER (ORDER BY a.Account_No) AS RowNum
+      FROM ACCOUNT a
       JOIN BANK_CUSTOMER c ON a.CustID = c.Cust_ID
     `);
     res.json(rows);
