@@ -1185,7 +1185,6 @@ class NexaBank {
             <div><h2 class="emp-dash-title">Reports & Analytics</h2><p class="emp-dash-sub">Live bank performance metrics</p></div>
             <div style="display:flex;gap:0.5rem;align-items:center;">
                 <button class="btn-auth-outline theme-icon-btn" onclick="app.cycleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
-                <button class="btn-auth-submit" onclick="app.exportReport()"><i class="fa-solid fa-download" style="margin-right:0.5rem"></i> Export CSV</button>
             </div>
         </div>
         <div class="emp-stats-grid" style="margin-bottom:1.5rem" id="rpt-summary"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</p></div>
@@ -1468,43 +1467,6 @@ class NexaBank {
         document.body.appendChild(ov);
     }
 
-    async exportReport() {
-        try {
-            const h = this.getHeaders();
-            const [loansR, accsR, txnsR, custsR] = await Promise.all([
-                fetch(`${this.api}/loans`, { headers: h }).then(r=>r.json()).catch(()=>[]),
-                fetch(`${this.api}/accounts`, { headers: h }).then(r=>r.json()).catch(()=>[]),
-                fetch(`${this.api}/transactions`, { headers: h }).then(r=>r.json()).catch(()=>[]),
-                fetch(`${this.api}/customers`, { headers: h }).then(r=>r.json()).catch(()=>[])
-            ]);
-
-            const totalDeposits = accsR.reduce((s,a)=>s+(parseFloat(a.Balance)||0),0);
-            const totalLoanAmt = loansR.reduce((s,l)=>s+(parseFloat(l.Requested_Amount)||0),0);
-            const totalTxns = txnsR.length;
-            const totalCusts = custsR.length;
-
-            const rows = [
-                ['Metric', 'Value'],
-                ['Total Deposits', 'INR ' + totalDeposits],
-                ['Total Loan Portfolio', 'INR ' + totalLoanAmt],
-                ['Total Transactions', totalTxns],
-                ['Total Customers', totalCusts],
-                ['Pending Loans', loansR.filter(l=>l.LoanStatus==='PENDING').length],
-                ['Approved Loans', loansR.filter(l=>l.LoanStatus==='APPROVED').length],
-                ['Active Accounts', accsR.length]
-            ];
-            const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(r => r.join(',')).join('\n');
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement('a');
-            link.setAttribute('href', encodedUri);
-            link.setAttribute('download', 'nexabank_report_' + new Date().toISOString().split('T')[0] + '.csv');
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-        } catch (e) {
-            alert('Failed to export report: ' + e.message);
-        }
-    }
 
     showCustReviewModal(custId, fName, lName, email, contact, taxId, type, kyc) {
         const old = document.getElementById('custReviewModal'); if(old) old.remove();
