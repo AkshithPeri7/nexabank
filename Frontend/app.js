@@ -1483,20 +1483,21 @@ class NexaBank {
             const totalTxns = txnsR.length;
             const totalCusts = custsR.length;
 
-            const csvContent = "data:text/csv;charset=utf-8," 
-                + "Metric,Value\\n"
-                + \`Total Deposits,INR \${totalDeposits}\\n\`
-                + \`Total Loan Portfolio,INR \${totalLoanAmt}\\n\`
-                + \`Total Transactions,\${totalTxns}\\n\`
-                + \`Total Customers,\${totalCusts}\\n\`
-                + \`Pending Loans,\${loansR.filter(l=>l.LoanStatus==='PENDING').length}\\n\`
-                + \`Approved Loans,\${loansR.filter(l=>l.LoanStatus==='APPROVED').length}\\n\`
-                + \`Active Accounts,\${accsR.length}\\n\`;
-
+            const rows = [
+                ['Metric', 'Value'],
+                ['Total Deposits', 'INR ' + totalDeposits],
+                ['Total Loan Portfolio', 'INR ' + totalLoanAmt],
+                ['Total Transactions', totalTxns],
+                ['Total Customers', totalCusts],
+                ['Pending Loans', loansR.filter(l=>l.LoanStatus==='PENDING').length],
+                ['Approved Loans', loansR.filter(l=>l.LoanStatus==='APPROVED').length],
+                ['Active Accounts', accsR.length]
+            ];
+            const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(r => r.join(',')).join('\n');
             const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", \`nexabank_report_\${new Date().toISOString().split('T')[0]}.csv\`);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'nexabank_report_' + new Date().toISOString().split('T')[0] + '.csv');
             document.body.appendChild(link);
             link.click();
             link.remove();
