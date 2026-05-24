@@ -48,6 +48,16 @@ exports.remove = async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
+exports.updateKyc = async (req, res) => {
+  const { kycStatus } = req.body;
+  try {
+    await db.query('UPDATE BANK_CUSTOMER SET KYCStatus = ? WHERE Cust_ID = ?', [kycStatus, req.params.id]);
+    res.json({ message: 'KYC status updated successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // ─── GOOGLE ONBOARDING: Update contact + initial deposit ─────────
 exports.updateContact = async (req, res) => {
   const { contactNo, initialDeposit } = req.body;

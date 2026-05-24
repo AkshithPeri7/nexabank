@@ -7,6 +7,7 @@ router.get('/:id',     ctrl.getById);
 router.post('/',       ctrl.create);
 router.put('/:id',     ctrl.update);
 router.patch('/:id/contact', verifyToken, ctrl.updateContact);
+router.patch('/:id/kyc', ctrl.updateKyc);
 router.delete('/:id',  ctrl.remove);
 
 module.exports = router;

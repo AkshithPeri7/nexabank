@@ -993,7 +993,7 @@ class NexaBank {
         </div>
         
         <div class="emp-panel">
-            <div class="emp-panel-title"><span>Bank Overview</span> <button class="btn-auth-outline" style="padding:4px 10px; font-size:0.8rem">Full Report</button></div>
+            <div class="emp-panel-title"><span>Bank Overview</span> <button class="btn-auth-outline" style="padding:4px 10px; font-size:0.8rem" onclick="app.loadEmpSection('reports')">Full Report</button></div>
             <div class="emp-stats-grid" style="margin-bottom:0">
                 <div class="emp-stat-box" style="align-items:center; text-align:center; box-shadow:none; background:#f9fafb">
                     <div class="emp-stat-box-value" style="color:#16a34a" id="dash-loans-approved">0</div>
@@ -1099,9 +1099,8 @@ class NexaBank {
             container.innerHTML = `<div class="registry-table-wrap"><table class="registry-table">
                 <thead><tr><th>S.No</th><th>CUST REF</th><th>Name</th><th>Contact</th><th>PAN</th><th>Type</th><th>KYC</th><th>Actions</th></tr></thead>
                 <tbody>${custs.map((c, i) => {
-                    const isVip = i%4===0; const isCorp = i%3===0;
-                    const type = isCorp ? 'CORPORATE' : isVip ? 'VIP' : 'INDIVIDUAL';
-                    const kyc = i%2===0 ? 'VERIFIED' : (i%5===0 ? 'REVIEW' : 'PENDING');
+                    const type = c.CustomerType || 'INDIVIDUAL';
+                    const kyc = c.KYCStatus || 'PENDING';
                     return `
                     <tr>
                         <td style="color:var(--text3)">${c.RowNum || (i+1)}</td>
@@ -1111,7 +1110,7 @@ class NexaBank {
                         <td style="color:var(--text3)">${c.TaxID || (c.FName || 'A').substring(0,4).toUpperCase() + 'X' + c.Cust_ID + 'XX'}</td>
                         <td><span class="badge ${isCorp?'badge-gold':isVip?'badge-red':'badge-green'}" style="background:var(--bg3);color:var(--text2)">${type}</span></td>
                         <td><span class="badge ${kyc==='VERIFIED'?'badge-green':kyc==='REVIEW'?'badge-red':'badge-gold'}">${kyc}</span></td>
-                        <td><div class="sli-actions"><button class="btn-review" style="padding:0.25rem 0.5rem">View</button><button class="btn-review" style="padding:0.25rem 0.5rem; color:#dc2626; border-color:#fecaca; background:#fef2f2">Del</button></div></td>
+                        <td><div class="sli-actions"><button class="btn-review" style="padding:0.25rem 0.5rem" onclick="app.showCustReviewModal(${c.Cust_ID}, '${(c.FName||'').replace(/'/g, ``)}', '${(c.LName||'').replace(/'/g, ``)}', '${(c.Email||'').replace(/'/g, ``)}', '${c.ContactNo||''}', '${c.TaxID||''}', '${type}', '${kyc}')">View</button><button class="btn-review" style="padding:0.25rem 0.5rem; color:#dc2626; border-color:#fecaca; background:#fef2f2">Del</button></div></td>
                     </tr>`;
                 }).join('')}</tbody></table></div>`;
         } catch { document.getElementById('reg-cust-container').innerHTML = `<p class="error-text">Failed to load</p>`; }
@@ -1144,7 +1143,7 @@ class NexaBank {
                         <td><span class="badge badge-gold" style="background:var(--bg3);color:var(--text2)">${a.AccountType || 'SAVINGS'}</span></td>
                         <td style="color:var(--gold2); font-size:0.95rem;">₹${this.fmt(a.Balance)}</td>
                         <td><span class="badge badge-green">ACTIVE</span></td>
-                        <td><div class="sli-actions"><button class="btn-review" style="padding:0.25rem 0.5rem">View</button></div></td>
+                        <td><div class="sli-actions"><button class="btn-review" style="padding:0.25rem 0.5rem" onclick="app.showAcctReviewModal(${a.Account_No}, '${(a.FName||'').replace(/'/g, ``)} ${(a.LName||'').replace(/'/g, ``)}', ${a.CustID}, '${a.AccountType || 'SAVINGS'}', ${a.Balance})">View</button></div></td>
                     </tr>`).join('')}</tbody></table></div>`;
         } catch { document.getElementById('reg-acct-container').innerHTML = `<p class="error-text">Failed to load accounts.</p>`; }
     }
@@ -1175,7 +1174,7 @@ class NexaBank {
                         <td style="color:${t.Transaction_Type==='CREDIT'?'var(--green)':'var(--text)'}; font-size:0.95rem;">${t.Transaction_Type==='CREDIT'?'+':'-'} ₹${this.fmt(t.Amount)}</td>
                         <td><span class="badge badge-gold" style="background:var(--bg3);color:var(--text2)">${t.PayMethod || 'SYSTEM'}</span></td>
                         <td>${new Date(t.Transaction_Date).toLocaleDateString()}</td>
-                        <td><div class="sli-actions"><button class="btn-review" style="padding:0.25rem 0.5rem">View</button></div></td>
+                        <td><div class="sli-actions"><button class="btn-review" style="padding:0.25rem 0.5rem" onclick="app.showTxnReviewModal(${t.Txn_ID}, '${t.Transaction_Type}', ${t.Amount}, '${(t.FName || 'System').replace(/'/g, ``)} ${(t.LName || '').replace(/'/g, ``)}', '${t.Account_No || 'N/A'}', '${t.PayMethod || 'SYSTEM'}', '${t.Transaction_Date}', '${(t.Description || 'Self / External').replace(/'/g, ``)}')">View</button></div></td>
                     </tr>`).join('')}</tbody></table></div>`;
         } catch { document.getElementById('reg-txn-container').innerHTML = `<p class="error-text">Failed to load</p>`; }
     }
@@ -1186,6 +1185,7 @@ class NexaBank {
             <div><h2 class="emp-dash-title">Reports & Analytics</h2><p class="emp-dash-sub">Live bank performance metrics</p></div>
             <div style="display:flex;gap:0.5rem;align-items:center;">
                 <button class="btn-auth-outline theme-icon-btn" onclick="app.cycleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
+                <button class="btn-auth-submit" onclick="app.exportReport()"><i class="fa-solid fa-download" style="margin-right:0.5rem"></i> Export CSV</button>
             </div>
         </div>
         <div class="emp-stats-grid" style="margin-bottom:1.5rem" id="rpt-summary"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</p></div>
@@ -1318,15 +1318,8 @@ class NexaBank {
             const custs = await res.json();
             if (!custs.length) { document.getElementById('kyc-table-wrap').innerHTML = '<p class="error-text">No customers found.</p>'; return; }
 
-            // Assign deterministic KYC status based on data completeness
             this._kycData = custs.map(c => {
-                let status = 'PENDING';
-                const hasBasics = c.FName && c.Email;
-                const hasId     = c.TaxID || c.DrivingLicence || c.CustIDProofType;
-                const hasContact = c.ContactNo;
-                if (hasBasics && hasId && hasContact) status = 'VERIFIED';
-                else if (!hasBasics) status = 'REJECTED';
-                return { ...c, kycStatus: status };
+                return { ...c, kycStatus: c.KYCStatus || 'PENDING' };
             });
 
             document.getElementById('kyc-verified').textContent  = this._kycData.filter(c=>c.kycStatus==='VERIFIED').length;
@@ -1359,8 +1352,10 @@ class NexaBank {
                     <td><span style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.3rem 0.75rem;border-radius:99px;font-size:0.78rem;font-weight:700;background:${statusBg};color:${statusColor}">
                         <i class="fa-solid ${icon}"></i>${c.kycStatus}</span></td>
                     <td style="display:flex;gap:0.5rem">
-                        ${c.kycStatus!=='VERIFIED' ? `<button class="btn-approve" style="font-size:0.78rem;padding:0.35rem 0.75rem" onclick="app.setKycStatus(${c.Cust_ID},'VERIFIED')"><i class="fa-solid fa-check"></i> Verify</button>` : ''}
-                        ${c.kycStatus!=='REJECTED' ? `<button class="btn-reject" style="font-size:0.78rem;padding:0.35rem 0.75rem" onclick="app.setKycStatus(${c.Cust_ID},'REJECTED')"><i class="fa-solid fa-xmark"></i> Reject</button>` : ''}
+                        ${c.kycStatus === 'PENDING' ? `
+                            <button class="btn-approve" style="font-size:0.78rem;padding:0.35rem 0.75rem" onclick="app.setKycStatus(${c.Cust_ID},'VERIFIED')"><i class="fa-solid fa-check"></i> Verify</button>
+                            <button class="btn-reject" style="font-size:0.78rem;padding:0.35rem 0.75rem" onclick="app.setKycStatus(${c.Cust_ID},'REJECTED')"><i class="fa-solid fa-xmark"></i> Reject</button>
+                        ` : ''}
                         <button class="btn-review" style="font-size:0.78rem;padding:0.35rem 0.75rem" onclick="app.showKycDetailModal(${c.Cust_ID})"><i class="fa-solid fa-eye"></i> View</button>
                     </td></tr>`;
             }).join('')}</tbody></table>`;
@@ -1378,13 +1373,20 @@ class NexaBank {
         this._renderKycTable(filtered);
     }
 
-    setKycStatus(custId, status) {
+    async setKycStatus(custId, status) {
         if (!this._kycData) return;
-        this._kycData = this._kycData.map(c => c.Cust_ID===custId ? {...c, kycStatus: status} : c);
-        document.getElementById('kyc-verified').textContent  = this._kycData.filter(c=>c.kycStatus==='VERIFIED').length;
-        document.getElementById('kyc-pending').textContent   = this._kycData.filter(c=>c.kycStatus==='PENDING').length;
-        document.getElementById('kyc-rejected').textContent  = this._kycData.filter(c=>c.kycStatus==='REJECTED').length;
-        this.filterKycTable();
+        try {
+            await fetch(`${this.api}/customers/${custId}/kyc`, {
+                method: 'PATCH',
+                headers: this.getHeaders(),
+                body: JSON.stringify({ kycStatus: status })
+            });
+            this._kycData = this._kycData.map(c => c.Cust_ID===custId ? {...c, kycStatus: status} : c);
+            document.getElementById('kyc-verified').textContent  = this._kycData.filter(c=>c.kycStatus==='VERIFIED').length;
+            document.getElementById('kyc-pending').textContent   = this._kycData.filter(c=>c.kycStatus==='PENDING').length;
+            document.getElementById('kyc-rejected').textContent  = this._kycData.filter(c=>c.kycStatus==='REJECTED').length;
+            this.filterKycTable();
+        } catch(e) { alert('Error updating KYC: ' + e.message); }
     }
 
     showKycDetailModal(custId) {
@@ -1417,6 +1419,175 @@ class NexaBank {
                 <button onclick="app.setKycStatus(${c.Cust_ID},'VERIFIED');document.getElementById('kycDetailModal').remove()" class="btn-approve" style="flex:1"><i class="fa-solid fa-check"></i> Mark Verified</button>
                 <button onclick="app.setKycStatus(${c.Cust_ID},'REJECTED');document.getElementById('kycDetailModal').remove()" class="btn-reject" style="flex:1"><i class="fa-solid fa-xmark"></i> Reject</button>
             </div></div>`;
+        document.body.appendChild(ov);
+    }
+
+    showTxnReviewModal(txnId, type, amount, name, acctNo, method, date, desc) {
+        const old = document.getElementById('txnReviewModal'); if(old) old.remove();
+        const ov = document.createElement('div');
+        ov.id = 'txnReviewModal';
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)';
+        ov.innerHTML = `<div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:2rem;width:100%;max-width:500px;animation:authFadeIn 0.3s ease-out;max-height:90vh;overflow-y:auto">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+                <h3 style="font-size:1.2rem;font-weight:800;color:var(--text)"><i class="fa-solid fa-receipt" style="color:var(--gold2);margin-right:0.5rem"></i>Transaction Details</h3>
+                <button onclick="document.getElementById('txnReviewModal').remove()" style="background:none;border:none;color:var(--text3);font-size:1.2rem;cursor:pointer">✕</button>
+            </div>
+            <div style="background:var(--bg2);border-radius:10px;padding:1.5rem;margin-bottom:1rem;text-align:center">
+                <div style="font-size:0.8rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.5rem">Amount ${type==='CREDIT'?'Credited':'Debited'}</div>
+                <div style="font-size:2.5rem;font-weight:800;color:${type==='CREDIT'?'var(--green)':'var(--text)'}">${type==='CREDIT'?'+':'-'}₹${this.fmt(amount)}</div>
+                <div style="color:var(--text2);font-size:0.9rem;margin-top:0.5rem;display:inline-block;padding:0.25rem 0.75rem;background:var(--bg3);border-radius:20px">${type} &nbsp;|&nbsp; ${method}</div>
+            </div>
+            
+            <div style="display:grid;grid-template-columns:1fr;gap:1rem;background:var(--bg3);padding:1.5rem;border-radius:12px">
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:0.75rem">
+                    <span style="color:var(--text3);font-size:0.85rem">Transaction ID</span>
+                    <span style="font-weight:600;color:var(--text)">#${txnId}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:0.75rem">
+                    <span style="color:var(--text3);font-size:0.85rem">Date & Time</span>
+                    <span style="font-weight:600;color:var(--text)">${new Date(date).toLocaleString()}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:0.75rem">
+                    <span style="color:var(--text3);font-size:0.85rem">Account Number</span>
+                    <span style="font-weight:600;color:var(--text)">${acctNo}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:0.75rem">
+                    <span style="color:var(--text3);font-size:0.85rem">Account Holder</span>
+                    <span style="font-weight:600;color:var(--text)">${name}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                    <span style="color:var(--text3);font-size:0.85rem">Description</span>
+                    <span style="font-weight:600;color:var(--text);text-align:right">${desc}</span>
+                </div>
+            </div>
+            
+            <div style="margin-top:2rem;text-align:center">
+                <button onclick="document.getElementById('txnReviewModal').remove()" style="background:var(--gold1);color:#000;border:none;padding:0.75rem 2rem;border-radius:8px;font-weight:700;cursor:pointer;width:100%;transition:transform 0.2s">Close</button>
+            </div>
+        </div>`;
+        document.body.appendChild(ov);
+    }
+
+    async exportReport() {
+        try {
+            const h = this.getHeaders();
+            const [loansR, accsR, txnsR, custsR] = await Promise.all([
+                fetch(`${this.api}/loans`, { headers: h }).then(r=>r.json()).catch(()=>[]),
+                fetch(`${this.api}/accounts`, { headers: h }).then(r=>r.json()).catch(()=>[]),
+                fetch(`${this.api}/transactions`, { headers: h }).then(r=>r.json()).catch(()=>[]),
+                fetch(`${this.api}/customers`, { headers: h }).then(r=>r.json()).catch(()=>[])
+            ]);
+
+            const totalDeposits = accsR.reduce((s,a)=>s+(parseFloat(a.Balance)||0),0);
+            const totalLoanAmt = loansR.reduce((s,l)=>s+(parseFloat(l.Requested_Amount)||0),0);
+            const totalTxns = txnsR.length;
+            const totalCusts = custsR.length;
+
+            const csvContent = "data:text/csv;charset=utf-8," 
+                + "Metric,Value\\n"
+                + \`Total Deposits,INR \${totalDeposits}\\n\`
+                + \`Total Loan Portfolio,INR \${totalLoanAmt}\\n\`
+                + \`Total Transactions,\${totalTxns}\\n\`
+                + \`Total Customers,\${totalCusts}\\n\`
+                + \`Pending Loans,\${loansR.filter(l=>l.LoanStatus==='PENDING').length}\\n\`
+                + \`Approved Loans,\${loansR.filter(l=>l.LoanStatus==='APPROVED').length}\\n\`
+                + \`Active Accounts,\${accsR.length}\\n\`;
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", \`nexabank_report_\${new Date().toISOString().split('T')[0]}.csv\`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (e) {
+            alert('Failed to export report: ' + e.message);
+        }
+    }
+
+    showCustReviewModal(custId, fName, lName, email, contact, taxId, type, kyc) {
+        const old = document.getElementById('custReviewModal'); if(old) old.remove();
+        const ov = document.createElement('div');
+        ov.id = 'custReviewModal';
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)';
+        ov.innerHTML = `<div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:2rem;width:100%;max-width:500px;animation:authFadeIn 0.3s ease-out;max-height:90vh;overflow-y:auto">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+                <h3 style="font-size:1.2rem;font-weight:800;color:var(--text)"><i class="fa-solid fa-user" style="color:var(--gold2);margin-right:0.5rem"></i>Customer Profile</h3>
+                <button onclick="document.getElementById('custReviewModal').remove()" style="background:none;border:none;color:var(--text3);font-size:1.2rem;cursor:pointer">✕</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr;gap:1rem;background:var(--bg3);padding:1.5rem;border-radius:12px">
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:0.75rem">
+                    <span style="color:var(--text3);font-size:0.85rem">Customer ID</span>
+                    <span style="font-weight:600;color:var(--text)">CUST${String(custId).padStart(4,'0')}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:0.75rem">
+                    <span style="color:var(--text3);font-size:0.85rem">Name</span>
+                    <span style="font-weight:600;color:var(--text)">${fName} ${lName}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:0.75rem">
+                    <span style="color:var(--text3);font-size:0.85rem">Email</span>
+                    <span style="font-weight:600;color:var(--text)">${email || 'N/A'}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:0.75rem">
+                    <span style="color:var(--text3);font-size:0.85rem">Contact Number</span>
+                    <span style="font-weight:600;color:var(--text)">${contact || 'N/A'}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:0.75rem">
+                    <span style="color:var(--text3);font-size:0.85rem">Tax ID (PAN)</span>
+                    <span style="font-weight:600;color:var(--text)">${taxId || 'N/A'}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:0.75rem">
+                    <span style="color:var(--text3);font-size:0.85rem">Account Type</span>
+                    <span style="font-weight:600;color:var(--text)">${type}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                    <span style="color:var(--text3);font-size:0.85rem">KYC Status</span>
+                    <span style="font-weight:600;color:${kyc==='VERIFIED'?'var(--green)':'var(--gold2)'}">${kyc}</span>
+                </div>
+            </div>
+            <div style="margin-top:2rem;text-align:center">
+                <button onclick="document.getElementById('custReviewModal').remove()" style="background:var(--gold1);color:#000;border:none;padding:0.75rem 2rem;border-radius:8px;font-weight:700;cursor:pointer;width:100%;transition:transform 0.2s">Close</button>
+            </div>
+        </div>`;
+        document.body.appendChild(ov);
+    }
+
+    showAcctReviewModal(acctNo, name, custId, type, balance) {
+        const old = document.getElementById('acctReviewModal'); if(old) old.remove();
+        const ov = document.createElement('div');
+        ov.id = 'acctReviewModal';
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)';
+        ov.innerHTML = `<div style="background:var(--card);border:1px solid var(--border);border-radius:20px;padding:2rem;width:100%;max-width:500px;animation:authFadeIn 0.3s ease-out;max-height:90vh;overflow-y:auto">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+                <h3 style="font-size:1.2rem;font-weight:800;color:var(--text)"><i class="fa-solid fa-building-columns" style="color:var(--gold2);margin-right:0.5rem"></i>Account Details</h3>
+                <button onclick="document.getElementById('acctReviewModal').remove()" style="background:none;border:none;color:var(--text3);font-size:1.2rem;cursor:pointer">✕</button>
+            </div>
+            <div style="background:var(--bg2);border-radius:10px;padding:1.5rem;margin-bottom:1rem;text-align:center">
+                <div style="font-size:0.8rem;font-weight:700;letter-spacing:1px;color:var(--text3);text-transform:uppercase;margin-bottom:0.5rem">Available Balance</div>
+                <div style="font-size:2.5rem;font-weight:800;color:var(--green)">₹${this.fmt(balance)}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr;gap:1rem;background:var(--bg3);padding:1.5rem;border-radius:12px">
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:0.75rem">
+                    <span style="color:var(--text3);font-size:0.85rem">Account Number</span>
+                    <span style="font-weight:600;color:var(--text);font-family:monospace">${acctNo}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:0.75rem">
+                    <span style="color:var(--text3);font-size:0.85rem">Account Type</span>
+                    <span style="font-weight:600;color:var(--text)">${type}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:0.75rem">
+                    <span style="color:var(--text3);font-size:0.85rem">Account Holder</span>
+                    <span style="font-weight:600;color:var(--text)">${name}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                    <span style="color:var(--text3);font-size:0.85rem">Customer ID</span>
+                    <span style="font-weight:600;color:var(--text)">CUST${String(custId).padStart(4,'0')}</span>
+                </div>
+            </div>
+            <div style="margin-top:2rem;text-align:center">
+                <button onclick="document.getElementById('acctReviewModal').remove()" style="background:var(--gold1);color:#000;border:none;padding:0.75rem 2rem;border-radius:8px;font-weight:700;cursor:pointer;width:100%;transition:transform 0.2s">Close</button>
+            </div>
+        </div>`;
         document.body.appendChild(ov);
     }
 
@@ -1727,8 +1898,8 @@ class NexaBank {
             } catch {}
             
             const acct = accounts[0];
-            const init = (data.FName||this.userName||'U').charAt(0).toUpperCase();
-            const fullName = `${data.FName||''} ${data.LName||''}`.trim();
+            const init = (data.Name||data.FName||this.userName||'U').charAt(0).toUpperCase();
+            const fullName = `${data.Name||data.FName||''} ${data.LName||''}`.trim();
             
             // Dynamic Health Score Calculations
             const totalBalance = accounts.reduce((sum, a) => sum + parseFloat(a.Balance || 0), 0);
@@ -1777,6 +1948,16 @@ class NexaBank {
                     </div>`:''}
                 </div>
                 <div class="profile-right-col">
+                    ${this.userType === 'employee' ? `
+                    <div class="health-card">
+                        <div class="health-card-title" style="margin-bottom:1rem"><i class="fa-solid fa-briefcase" style="color:var(--gold2);margin-right:0.5rem"></i>Employment Details</div>
+                        <div class="health-row" style="margin-bottom:0.75rem"><span class="health-lbl">Employee ID</span><span class="health-val" style="font-weight:700;font-family:monospace">EMP${String(data.EID||this.userId).padStart(4,'0')}</span></div>
+                        <div class="health-row" style="margin-bottom:0.75rem"><span class="health-lbl">Department</span><span class="health-val">${data.D_und || 'Administration'}</span></div>
+                        <div class="health-row" style="margin-bottom:0.75rem"><span class="health-lbl">Role</span><span class="health-val">${data.Responsibility || 'Staff'}</span></div>
+                        <div class="health-row" style="margin-bottom:0.75rem"><span class="health-lbl">Joined Date</span><span class="health-val">${data.JoinedDate ? new Date(data.JoinedDate).toLocaleDateString() : 'N/A'}</span></div>
+                        <div class="health-row" style="margin-bottom:0.75rem"><span class="health-lbl">Base Salary</span><span class="health-val" style="color:var(--green);font-weight:800">₹${this.fmt(data.Salary || 0)}</span></div>
+                    </div>
+                    ` : `
                     ${acct?`
                     <div class="bank-card">
                         <div class="bank-card-bg1"></div><div class="bank-card-bg2"></div>
@@ -1797,6 +1978,7 @@ class NexaBank {
                         <div class="health-row"><span class="health-lbl">On-Time Payments</span><span class="health-val" style="color:${onTimeColor}">${onTimePct}%</span></div>
                         <div class="health-bar-bg"><div class="health-bar-fill" style="width:${onTimePct}%;background:${onTimeColor}"></div></div>
                     </div>
+                    `}
                 </div>
             </div></div>`;
         } catch(err) { el.innerHTML = `<div class="cust-inner"><p class="error-text">Could not load profile: ${err.message}</p></div>`; }

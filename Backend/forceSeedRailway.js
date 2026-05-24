@@ -33,7 +33,7 @@ async function forceSeed() {
             `ALTER TABLE BANK_EMPLOYEE ADD COLUMN IF NOT EXISTS Address TEXT`,
         ];
         for (const q of extraCols) {
-            try { await connection.query(q); } catch(e) { /* ignore */ }
+            try { await connection.query(q); } catch (e) { /* ignore */ }
         }
 
         // ── Step 2: Full employee roster with rich details ─────────────
@@ -43,7 +43,7 @@ async function forceSeed() {
             {
                 Name: 'Akshith', LName: 'Peri',
                 Email: 'akshith.peri@nexabank.in',
-                Salary: 95000.00, D_und: 'Technology',
+                Salary: 950000.00, D_und: 'Technology',
                 JoinedDate: '2022-06-01',
                 Responsibility: 'System Administrator & Tech Lead',
                 BranchID: 1, City: 'Hyderabad', Country: 'India',
@@ -139,8 +139,8 @@ async function forceSeed() {
                         Address=?, ContactNo=?, PasswordHash=?
                     WHERE Email=?`,
                     [emp.Name, emp.LName, emp.Salary, emp.D_und, emp.JoinedDate,
-                     emp.Responsibility, emp.BranchID, emp.City, emp.Country,
-                     emp.Address, emp.ContactNo, hash, emp.Email]
+                    emp.Responsibility, emp.BranchID, emp.City, emp.Country,
+                    emp.Address, emp.ContactNo, hash, emp.Email]
                 );
                 console.log(`  ↻ Updated: ${emp.Name} ${emp.LName} (${emp.Email})`);
             } else {
@@ -151,8 +151,8 @@ async function forceSeed() {
                          Responsibility, BranchID, City, Country, Address, ContactNo, PasswordHash)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                     [emp.Name, emp.LName, emp.Email, emp.Salary, emp.D_und, emp.JoinedDate,
-                     emp.Responsibility, emp.BranchID, emp.City, emp.Country,
-                     emp.Address, emp.ContactNo, hash]
+                    emp.Responsibility, emp.BranchID, emp.City, emp.Country,
+                    emp.Address, emp.ContactNo, hash]
                 );
                 console.log(`  ✅ Inserted: ${emp.Name} ${emp.LName} (${emp.Email})`);
             }
