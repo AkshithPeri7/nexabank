@@ -608,8 +608,9 @@ html { scroll-behavior: smooth; }
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 2rem;
+    justify-content: flex-start;
+    padding: 3rem 1.5rem;
+    overflow-y: auto;
 }
 
 @media (max-width: 992px) {
@@ -633,6 +634,7 @@ html { scroll-behavior: smooth; }
     max-width: 420px;
     box-shadow: var(--shadow);
     animation: authFadeIn 0.5s ease-out;
+    margin: auto;
 }
 
 @keyframes authFadeIn {
@@ -1533,13 +1535,15 @@ html { scroll-behavior: smooth; }
     background: var(--bg);
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 2rem;
+    justify-content: flex-start;
+    padding: 3rem 1.5rem;
+    overflow-y: auto;
 }
 
 .admin-auth-card {
     width: 100%;
     max-width: 400px;
+    margin: auto;
 }
 
 .admin-auth-icon {
@@ -1780,6 +1784,7 @@ html { scroll-behavior: smooth; }
     box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 .emp-stat-box-title {
     font-size: 0.8rem;
@@ -1790,11 +1795,14 @@ html { scroll-behavior: smooth; }
     margin-bottom: 0.5rem;
 }
 .emp-stat-box-value {
-    font-size: 2.25rem;
+    font-size: clamp(1.4rem, 2vw, 2.25rem);
     font-weight: 800;
     color: var(--text);
     line-height: 1.1;
     margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .emp-stat-box-sub {
     font-size: 0.85rem;
