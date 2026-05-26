@@ -26,6 +26,7 @@ initDatabase()
         app.use('/api/payments',     require('./routes/payment'));
         app.use('/api/beneficiaries', require('./routes/beneficiary'));
         app.use('/api/fixed-deposits', require('./routes/fixedDeposit'));
+        app.use('/api/recurring-deposits', require('./routes/recurringDeposit'));
         app.use('/api/audit',        require('./routes/audit'));
         app.use('/api/credit-cards', require('./routes/creditCard'));
         app.use('/api/investments',  require('./routes/investment'));

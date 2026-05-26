@@ -570,8 +570,17 @@ class NexaBank {
             <div class="cust-card"><div class="cust-card-header"><span class="cust-card-title">Recent Transactions</span><button class="cust-view-all" onclick="app.loadCustSection('transactions')">View All</button></div><div id="d-txns"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i></p></div></div>
             <div class="cust-card"><div class="cust-card-header"><span class="cust-card-title">My Accounts</span><button class="cust-view-all" onclick="app.loadCustSection('accounts')">Manage</button></div><div id="d-accts"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i></p></div></div>
         </div>
+        <div class="cust-card" style="margin-top: 1.5rem; background: var(--bg2); border: 1px dashed var(--gold);">
+            <div class="cust-card-header"><span class="cust-card-title" style="color:var(--gold2)"><i class="fa-solid fa-bolt"></i> Quick Pay (Simulated Gateway)</span><button class="cust-view-all" onclick="app.openBillPayModal()">Pay Any Bill</button></div>
+            <div class="qa-grid" style="margin-top:0.5rem">
+                <button class="qa-btn" onclick="document.getElementById('bp-category') && (document.getElementById('bp-category').value='Electricity Bill'); app.openBillPayModal()"><div class="qa-icon"><i class="fa-solid fa-lightbulb" style="color:#eab308"></i></div>Electricity</button>
+                <button class="qa-btn" onclick="document.getElementById('bp-category') && (document.getElementById('bp-category').value='Mobile Recharge'); app.openBillPayModal()"><div class="qa-icon"><i class="fa-solid fa-mobile-screen" style="color:#3b82f6"></i></div>Mobile Recharge</button>
+                <button class="qa-btn" onclick="document.getElementById('bp-category') && (document.getElementById('bp-category').value='Credit Card Bill'); app.openBillPayModal()"><div class="qa-icon"><i class="fa-solid fa-credit-card" style="color:#ef4444"></i></div>Credit Card</button>
+                <button class="qa-btn" onclick="document.getElementById('bp-category') && (document.getElementById('bp-category').value='Broadband Bill'); app.openBillPayModal()"><div class="qa-icon"><i class="fa-solid fa-wifi" style="color:#10b981"></i></div>Broadband</button>
+            </div>
+        </div>
         <div class="cust-card" style="margin-top: 1.5rem;">
-            <div class="cust-card-header"><span class="cust-card-title">Spending Analytics (All Time)</span></div>
+            <div class="cust-card-header"><span class="cust-card-title">Spending Analytics (Current Month)</span></div>
             <div style="height: 300px; display: flex; justify-content: center; align-items: center; padding: 1rem; width: 100%;">
                 <canvas id="spendChart"></canvas>
             </div>
@@ -600,7 +609,14 @@ class NexaBank {
             acctEl.innerHTML = accounts.length ? accounts.map(a => `<div class="dash-acct-mini"><div class="dash-acct-mini-type">${a.AccountType||'SAVINGS'} Account</div><div class="dash-acct-mini-bal">₹${this.fmt(a.Balance)}</div><div class="dash-acct-mini-num">•••• •••• ${String(a.Account_No).slice(-4)}</div></div>`).join('') : '<p style="color:#999;text-align:center;padding:1rem">No accounts found.</p>';
 
             // Render Spending Analytics Chart
-            const debits = txns.filter(t => t.Transaction_Type === 'DEBIT');
+            const currMonth = new Date().getMonth();
+            const currYear = new Date().getFullYear();
+            const debits = txns.filter(t => {
+                if (t.Transaction_Type !== 'DEBIT') return false;
+                if (!t.Transaction_Date) return false;
+                const d = new Date(t.Transaction_Date);
+                return d.getMonth() === currMonth && d.getFullYear() === currYear;
+            });
             let cats = { 'Transfers': 0, 'Bills & Utilities': 0, 'Shopping': 0, 'Others': 0 };
             debits.forEach(t => {
                 const desc = (t.Description || '').toLowerCase();
@@ -696,7 +712,7 @@ class NexaBank {
     }
 
     
-    async exportCustomerStatement() {
+    async exportCustomerStatement(format = 'csv') {
         if (!this.userId) return;
         try {
             const res = await fetch(`${this.api}/transactions`, { headers: this.getHeaders() });
@@ -706,6 +722,38 @@ class NexaBank {
                 this.toast('No transactions to export.', 'info');
                 return;
             }
+            
+            if (format === 'pdf' && window.jspdf) {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                doc.setFontSize(18);
+                doc.text("NexaBank - Account Statement", 14, 22);
+                doc.setFontSize(11);
+                doc.text(`Customer ID: ${this.userId}`, 14, 30);
+                doc.text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, 14, 36);
+                
+                const tableData = txns.map(t => [
+                    t.Txn_ID,
+                    t.Transaction_Date ? new Date(t.Transaction_Date).toLocaleDateString('en-IN') : '',
+                    t.Description || 'Transfer',
+                    t.Transaction_Type,
+                    t.Amount
+                ]);
+                
+                doc.autoTable({
+                    startY: 45,
+                    head: [['Txn ID', 'Date', 'Description', 'Type', 'Amount (Rs)']],
+                    body: tableData,
+                    theme: 'striped',
+                    headStyles: { fillColor: [217, 160, 91] }
+                });
+                
+                doc.save(`account_statement_${new Date().toISOString().split('T')[0]}.pdf`);
+                this.toast('Statement downloaded successfully as PDF.', 'success');
+                return;
+            }
+
             const rows = [['Transaction ID', 'Date', 'Description', 'Type', 'Amount']];
             txns.forEach(t => {
                 rows.push([
@@ -724,8 +772,9 @@ class NexaBank {
             document.body.appendChild(link);
             link.click();
             link.remove();
-            this.toast('Statement downloaded successfully.', 'success');
+            this.toast('Statement downloaded successfully as CSV.', 'success');
         } catch (e) {
+            console.error(e);
             this.toast('Failed to download statement.', 'error');
         }
     }
@@ -835,7 +884,7 @@ class NexaBank {
             el.innerHTML = `<div class="cust-inner">
             <div class="cust-page-header">
                 <div><h1 class="cust-greeting">Transactions</h1><p class="cust-greet-sub">All your transaction history</p></div>
-                <div style="display:flex;gap:0.5rem;"><button class="btn-new-txn" onclick="app.exportCustomerStatement()"><i class="fa-solid fa-download"></i> Statement</button><button class="btn-new-txn" onclick="app.openBillPayModal()"><i class="fa-solid fa-file-invoice-dollar"></i> Pay Bills</button><button class="btn-new-txn" onclick="app.openTransferModal()">+ Fund Transfer</button></div>
+                <div style="display:flex;gap:0.5rem;"><button class="btn-new-txn" onclick="app.exportCustomerStatement('pdf')"><i class="fa-solid fa-file-pdf"></i> PDF</button><button class="btn-new-txn" onclick="app.exportCustomerStatement('csv')"><i class="fa-solid fa-file-csv"></i> CSV</button><button class="btn-new-txn" onclick="app.openBillPayModal()"><i class="fa-solid fa-file-invoice-dollar"></i> Pay Bills</button><button class="btn-new-txn" onclick="app.openTransferModal()">+ Fund Transfer</button></div>
             </div>
             <div class="cust-card">
                 <div class="cust-card-header"><span class="cust-card-title">All Transactions</span></div>
@@ -1153,15 +1202,19 @@ class NexaBank {
         const el = document.getElementById('cust-main-content');
         el.innerHTML = `<div class="cust-inner"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i></p></div>`;
         try {
-            const [resInv, resFD] = await Promise.all([
+            const [resInv, resFD, resRD] = await Promise.all([
                 fetch(`${this.api}/investments`, { headers: this.getHeaders() }),
-                fetch(`${this.api}/fixed-deposits/${this.userId}`, { headers: this.getHeaders() })
+                fetch(`${this.api}/fixed-deposits/${this.userId}`, { headers: this.getHeaders() }),
+                fetch(`${this.api}/recurring-deposits/${this.userId}`, { headers: this.getHeaders() }).catch(() => ({ ok: false }))
             ]);
             let invs = await resInv.json();
             invs = invs.filter(i => i.Cust_ID === this.userId);
             
             let fds = [];
             if(resFD.ok) fds = await resFD.json();
+
+            let rds = [];
+            if(resRD && resRD.ok) rds = await resRD.json();
 
             el.innerHTML = `<div class="cust-inner">
             <div class="cust-page-header">
@@ -1187,6 +1240,30 @@ class NexaBank {
                                 <td>${f.MaturityDate?new Date(f.MaturityDate).toLocaleDateString('en-IN'):'—'}</td>
                                 <td style="color:var(--green)">₹${this.fmt(f.MaturityAmount)}</td>
                                 <td><span class="tbl-badge ${f.Status==='ACTIVE'?'badge-green':'badge-gold'}">${f.Status}</span></td>
+                            </tr>`).join('')}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+
+            <!-- RECURRING DEPOSITS TABLE -->
+            <div class="cust-card" style="margin-bottom:1.5rem">
+                <div class="cust-card-header">
+                    <span class="cust-card-title">Recurring Deposits (RDs)</span>
+                    <button class="btn-new-txn" onclick="app.openRDModal()"><i class="fa-solid fa-coins"></i> Start RD</button>
+                </div>
+                <div class="premium-table-wrap">
+                <table class="premium-table">
+                    <thead><tr><th>RD ID</th><th>INSTALLMENT/MO</th><th>RATE</th><th>TENURE</th><th>MATURITY DATE</th><th>MATURITY AMT</th><th>STATUS</th></tr></thead>
+                    <tbody>${!rds.length ? `<tr><td colspan="7" class="tbl-empty">No active Recurring Deposits found.</td></tr>` : rds.map(r => `
+                            <tr>
+                                <td class="tbl-id">RD${String(r.RD_ID).padStart(4,'0')}</td>
+                                <td>₹${this.fmt(r.MonthlyInstallment)}</td>
+                                <td>${r.InterestRate}%</td>
+                                <td>${r.TenureMonths} Months</td>
+                                <td>${r.MaturityDate?new Date(r.MaturityDate).toLocaleDateString('en-IN'):'—'}</td>
+                                <td style="color:var(--green)">₹${this.fmt(r.MaturityAmount)}</td>
+                                <td><span class="tbl-badge ${r.Status==='ACTIVE'?'badge-green':'badge-gold'}">${r.Status}</span></td>
                             </tr>`).join('')}
                     </tbody>
                 </table>
@@ -1264,6 +1341,7 @@ class NexaBank {
         document.getElementById('fd-mat-disp').textContent = '₹' + this.fmt(mat);
     }
 
+
     async bookFD() {
         if(!this.userId) return;
         const principal = document.getElementById('fd-principal').value;
@@ -1279,7 +1357,8 @@ class NexaBank {
             const accounts = await acR.json();
             const myAcc = accounts.find(a => a.CustID === this.userId);
             if(!myAcc || parseFloat(myAcc.Balance) < principal) {
-                throw new Error('Insufficient balance in savings account to book FD.');
+                this.toast('Insufficient balance to book FD', 'error');
+                return;
             }
 
             const res = await fetch(`${this.api}/fixed-deposits/${this.userId}`, {
@@ -1306,6 +1385,102 @@ class NexaBank {
 
             document.getElementById('nexaModal').remove();
             this.toast('Fixed Deposit booked successfully!', 'success');
+            this.renderCustInvestments();
+        } catch(e) {
+            this.toast(e.message, 'error');
+        }
+    }
+
+    openRDModal() {
+        const m = document.createElement('div');
+        m.id = 'rdModal';
+        m.className = 'nexa-modal-overlay';
+        m.innerHTML = `
+        <div class="nexa-modal" style="max-width: 450px">
+            <div class="nexa-modal-header">
+                <div class="nexa-modal-icon" style="background:rgba(59,130,246,0.12)"><i class="fa-solid fa-coins" style="color:#3b82f6"></i></div>
+                <div><div class="nexa-modal-title">Start Recurring Deposit</div><div class="nexa-modal-sub">Save a fixed amount monthly</div></div>
+            </div>
+            <div class="nexa-modal-field"><label>MONTHLY INSTALLMENT (₹)</label><input id="rd-installment" class="nexa-modal-input" type="number" placeholder="min. 500" oninput="app.calcRDMaturity()"></div>
+            <div class="nexa-modal-field"><label>TENURE (Months)</label>
+                <select id="rd-tenure" class="nexa-modal-input" onchange="app.calcRDMaturity()">
+                    <option value="6">6 Months (4.5%)</option>
+                    <option value="12">1 Year (5.5%)</option>
+                    <option value="24">2 Years (6.0%)</option>
+                    <option value="60">5 Years (6.5%)</option>
+                </select>
+            </div>
+            
+            <div style="background: var(--bg); padding: 1rem; border-radius: 8px; margin-top: 1rem; border: 1px solid var(--border);">
+                <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span style="color:var(--text2)">Interest Rate</span><strong id="rd-rate-disp">4.5% p.a.</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text2)">Estimated Maturity</span><strong id="rd-mat-disp" style="color:var(--green)">₹0.00</strong></div>
+            </div>
+
+            <div style="display:flex;gap:1rem;margin-top:1.5rem">
+                <button class="btn-auth-outline" style="flex:1" onclick="this.closest('.nexa-modal-overlay').remove()">Cancel</button>
+                <button class="btn-auth-submit" style="flex:1" onclick="app.bookRD()">Start RD</button>
+            </div>
+        </div>`;
+        document.body.appendChild(m);
+        setTimeout(() => m.classList.add('active'), 10);
+    }
+
+    calcRDMaturity() {
+        const pInput = document.getElementById('rd-installment').value;
+        const P = parseFloat(pInput) || 0;
+        const n = parseInt(document.getElementById('rd-tenure').value);
+        let rate = 4.5;
+        if(n >= 12) rate = 5.5;
+        if(n >= 24) rate = 6.0;
+        if(n >= 60) rate = 6.5;
+        
+        document.getElementById('rd-rate-disp').textContent = rate.toFixed(1) + '% p.a.';
+        const maturityAmount = (P * n) + (P * (n * (n + 1) / 2) * (rate / 12) / 100);
+        document.getElementById('rd-mat-disp').textContent = '₹' + this.fmt(maturityAmount);
+    }
+
+    async bookRD() {
+        if(!this.userId) return;
+        const installment = document.getElementById('rd-installment').value;
+        const tenure = document.getElementById('rd-tenure').value;
+        if(!installment || installment < 500) {
+            this.toast('Minimum monthly installment is ₹500', 'error');
+            return;
+        }
+
+        try {
+            const acR = await fetch(`${this.api}/accounts`, { headers: this.getHeaders() });
+            const accounts = await acR.json();
+            const myAcc = accounts.find(a => a.CustID === this.userId);
+            if(!myAcc || parseFloat(myAcc.Balance) < installment) {
+                this.toast('Insufficient balance for first installment', 'error');
+                return;
+            }
+
+            const res = await fetch(`${this.api}/recurring-deposits/${this.userId}`, {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify({ MonthlyInstallment: installment, TenureMonths: tenure })
+            });
+            const data = await res.json();
+            if(!res.ok) throw new Error(data.error);
+
+            // Debit first installment
+            await fetch(`${this.api}/transactions`, {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify({
+                    Account_No: myAcc.Account_No,
+                    CustID: this.userId,
+                    Amount: installment,
+                    Transaction_Type: 'DEBIT',
+                    Description: 'Recurring Deposit Installment',
+                    PayMethod: 'INTERNAL'
+                })
+            });
+
+            this.toast('Recurring Deposit Started!', 'success');
+            document.getElementById('rdModal').remove();
             this.renderCustInvestments();
         } catch(e) {
             this.toast(e.message, 'error');
@@ -1425,18 +1600,23 @@ class NexaBank {
             </div>
             <div class="emp-stat-box" style="border-top: 4px solid #f59e0b">
                 <div class="emp-stat-box-title">KYC Pending</div>
-                <div class="emp-stat-box-value">3</div>
+                <div class="emp-stat-box-value" id="stat-kyc">—</div>
                 <div class="emp-stat-box-sub" style="color:#d97706">Awaiting verification</div>
             </div>
             <div class="emp-stat-box" style="border-top: 4px solid #10b981">
                 <div class="emp-stat-box-title">Total Customers</div>
                 <div class="emp-stat-box-value" id="stat-cust">—</div>
-                <div class="emp-stat-box-sub" style="color:#10b981"><i class="fa-solid fa-arrow-up"></i> +12 this month</div>
+                <div class="emp-stat-box-sub" style="color:#10b981"><i class="fa-solid fa-arrow-up"></i> Active</div>
             </div>
             <div class="emp-stat-box" style="border-top: 4px solid #3b82f6">
                 <div class="emp-stat-box-title">Transactions</div>
-                <div class="emp-stat-box-value">5</div>
-                <div class="emp-stat-box-sub">₹3.26L processed</div>
+                <div class="emp-stat-box-value" id="stat-txn">—</div>
+                <div class="emp-stat-box-sub" id="stat-txn-sub">Total processed</div>
+            </div>
+            <div class="emp-stat-box" style="border-top: 4px solid #dc2626">
+                <div class="emp-stat-box-title">Flagged Txns</div>
+                <div class="emp-stat-box-value" id="stat-flagged">—</div>
+                <div class="emp-stat-box-sub" style="color:#dc2626"><i class="fa-solid fa-triangle-exclamation"></i> > ₹50,000</div>
             </div>
         </div>
 
@@ -1476,28 +1656,53 @@ class NexaBank {
             </div>
         </div>`;
         
-        fetch(`${this.api}/customers`, { headers: this.getHeaders() })
-            .then(r => r.json()).then(d => { const e = document.getElementById('stat-cust'); if(e) e.textContent = d.length; }).catch(()=>{});
-            
-        fetch(`${this.api}/loans`, { headers: this.getHeaders() })
-            .then(r => r.json()).then(d => { 
-                const pending = d.filter(l => l.ApprovalStatus === 'PENDING' || !l.ApprovalStatus);
-                const approved = d.filter(l => l.ApprovalStatus === 'APPROVED');
-                const rejected = d.filter(l => l.ApprovalStatus === 'REJECTED');
-                const elPending = document.getElementById('stat-loans');
-                if(elPending) elPending.textContent = pending.length;
-                
-                const elAppr = document.getElementById('dash-loans-approved');
-                if(elAppr) elAppr.textContent = approved.length;
-                
-                const elRej = document.getElementById('dash-loans-rejected');
-                if(elRej) elRej.textContent = rejected.length;
+        // Load all live stats in one parallel request
+        (async () => {
+            try {
+                const h = this.getHeaders();
+                const [custsR, loansR, txnsR, accsR] = await Promise.all([
+                    fetch(`${this.api}/customers`, { headers: h }).then(r => r.json()).catch(() => []),
+                    fetch(`${this.api}/loans`, { headers: h }).then(r => r.json()).catch(() => []),
+                    fetch(`${this.api}/transactions`, { headers: h }).then(r => r.json()).catch(() => []),
+                    fetch(`${this.api}/accounts`, { headers: h }).then(r => r.json()).catch(() => [])
+                ]);
 
+                const el = (id) => document.getElementById(id);
+
+                // Customers
+                if (el('stat-cust')) el('stat-cust').textContent = custsR.length;
+
+                // KYC Pending
+                const kycPending = custsR.filter(c => (c.KYCStatus || 'PENDING').toUpperCase() === 'PENDING').length;
+                if (el('stat-kyc')) el('stat-kyc').textContent = kycPending;
+
+                // Transactions
+                const totalTxnAmt = txnsR.reduce((s, t) => s + parseFloat(t.Amount || 0), 0);
+                if (el('stat-txn')) el('stat-txn').textContent = txnsR.length;
+                if (el('stat-txn-sub')) el('stat-txn-sub').textContent = '₹' + this.fmt(totalTxnAmt) + ' processed';
+                
+                // Flagged Transactions
+                const flaggedTxns = txnsR.filter(t => parseFloat(t.Amount || 0) > 50000).length;
+                if (el('stat-flagged')) el('stat-flagged').textContent = flaggedTxns;
+
+                // Loans
+                const pending  = loansR.filter(l => l.ApprovalStatus === 'PENDING' || !l.ApprovalStatus);
+                const approved = loansR.filter(l => l.ApprovalStatus === 'APPROVED');
+                const rejected = loansR.filter(l => l.ApprovalStatus === 'REJECTED');
+                if (el('stat-loans'))         el('stat-loans').textContent = pending.length;
+                if (el('dash-loans-approved')) el('dash-loans-approved').textContent = approved.length;
+                if (el('dash-loans-rejected')) el('dash-loans-rejected').textContent = rejected.length;
+
+                // Total Deposits
+                const totalDeposits = accsR.reduce((s, a) => s + parseFloat(a.Balance || 0), 0);
+                if (el('dash-total-deposits')) el('dash-total-deposits').textContent = '₹' + this.fmt(totalDeposits);
+
+                // Pending Loans List
                 const listEl = document.getElementById('dash-pending-loans');
                 if (listEl) {
                     if (pending.length === 0) listEl.innerHTML = '<p style="color:var(--text3); font-size:0.9rem">No pending loans.</p>';
                     else {
-                        listEl.innerHTML = pending.slice(0,3).map(l => `
+                        listEl.innerHTML = pending.slice(0, 3).map(l => `
                             <div class="simple-list-item">
                                 <div class="sli-info">
                                     <div class="sli-icon" style="color:#d97706; background:#fef3c7"><i class="fa-solid fa-file-signature"></i></div>
@@ -1511,14 +1716,9 @@ class NexaBank {
                         `).join('');
                     }
                 }
-            }).catch(()=>{});
-            
-        fetch(`${this.api}/accounts`, { headers: this.getHeaders() })
-            .then(r => r.json()).then(d => {
-                const total = d.reduce((sum, a) => sum + parseFloat(a.Balance || 0), 0);
-                const elDep = document.getElementById('dash-total-deposits');
-                if(elDep) elDep.textContent = '₹' + this.fmt(total);
-            }).catch(()=>{});
+            } catch(e) { console.error('Dashboard stats error:', e); }
+        })();
+
 
         fetch(`${this.api}/audit`, { headers: this.getHeaders() })
             .then(r => r.json()).then(d => {
@@ -1567,6 +1767,8 @@ class NexaBank {
                 <tbody>${custs.map((c, i) => {
                     const type = c.CustomerType || 'INDIVIDUAL';
                     const kyc = c.KYCStatus || 'PENDING';
+                    const isCorp = type.toUpperCase() === 'CORPORATE';
+                    const isVip = type.toUpperCase() === 'VIP';
                     return `
                     <tr>
                         <td style="color:var(--text3)">${c.RowNum || (i+1)}</td>
@@ -1602,54 +1804,114 @@ class NexaBank {
                 <thead><tr><th>S.No</th><th>Acct Ref</th><th>Customer</th><th>Cust ID</th><th>Type</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody>${accts.map((a,i) => `
                     <tr>
-                        <td style="color:var(--text3)">${a.RowNum || (i+1)}</td>
-                        <td style="color:var(--text3);font-family:monospace">AC${String(a.Account_No).padStart(6,'0')}</td>
-                        <td style="font-weight:600">${a.FName||''} ${a.LName||''}</td>
-                        <td style="color:var(--text2)">CUST${String(a.CustID||0).padStart(4,'0')}</td>
-                        <td><span class="badge badge-gold" style="background:var(--bg3);color:var(--text2)">${a.AccountType || 'SAVINGS'}</span></td>
-                        <td style="color:var(--gold2); font-size:0.95rem;">₹${this.fmt(a.Balance)}</td>
+                        <td style="color:var(--text3)">${i+1}</td>
+                        <td style="font-family:monospace">ACCT${String(a.Account_No).slice(-4)}</td>
+                        <td><strong>${a.FName||'User'} ${a.LName||''}</strong></td>
+                        <td style="color:var(--text3)">${a.CustID}</td>
+                        <td><span class="badge badge-blue" style="background:var(--bg3);color:var(--text2)">${a.AccountType||'SAVINGS'}</span></td>
+                        <td style="font-weight:700">₹${this.fmt(a.Balance)}</td>
                         <td><span class="badge badge-green">ACTIVE</span></td>
-                        <td><div class="sli-actions"><button class="btn-review" style="padding:0.25rem 0.5rem" onclick="app.showAcctReviewModal(${a.Account_No}, '${(a.FName||'').replace(/'/g, ``)} ${(a.LName||'').replace(/'/g, ``)}', ${a.CustID}, '${a.AccountType || 'SAVINGS'}', ${a.Balance})">View</button></div></td>
+                        <td><button class="btn-review" style="padding:0.25rem 0.5rem" onclick="alert('Account details viewing not implemented')">View</button></td>
                     </tr>`).join('')}</tbody></table></div>`;
         } catch { document.getElementById('reg-acct-container').innerHTML = `<p class="error-text">Failed to load accounts.</p>`; }
     }
-    
+
     async renderEmpTransactions() {
         const el = document.getElementById('emp-main-content');
         el.innerHTML = `<div class="emp-dash-header" style="margin-bottom:0.5rem">
             <div><h2 class="emp-dash-title">All Transactions</h2><p class="emp-dash-sub">Complete bank transaction ledger</p></div>
             <button class="btn-auth-outline theme-icon-btn" onclick="app.cycleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
         </div>
-        <div class="registry-toolbar">
-            <div class="registry-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--text3)"></i> <input type="text" placeholder="Search..."></div>
-            <select class="registry-filter"><option>All Methods</option><option>UPI</option><option>NEFT</option></select>
+        <div class="registry-toolbar" style="flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+            <div class="registry-search" style="flex: 1; min-width: 250px;"><i class="fa-solid fa-magnifying-glass" style="color:var(--text3)"></i>
+                <input type="text" id="txn-search" placeholder="Search by name, desc, ID, account..." oninput="app.filterEmpTransactions()">
+            </div>
+            <select class="registry-filter" id="txn-type-filter" onchange="app.filterEmpTransactions()">
+                <option value="">All Types</option>
+                <option value="CREDIT">Credit</option>
+                <option value="DEBIT">Debit</option>
+            </select>
+            <select class="registry-filter" id="txn-status-filter" onchange="app.filterEmpTransactions()">
+                <option value="">All Statuses</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="FLAGGED">Flagged (>50k)</option>
+            </select>
+            <input type="date" class="registry-filter" id="txn-date-from" onchange="app.filterEmpTransactions()" placeholder="From Date" title="From Date">
+            <input type="date" class="registry-filter" id="txn-date-to" onchange="app.filterEmpTransactions()" placeholder="To Date" title="To Date">
+            <input type="number" class="registry-filter" id="txn-amt-min" oninput="app.filterEmpTransactions()" placeholder="Min Amt ₹" style="width: 100px;">
+            <input type="number" class="registry-filter" id="txn-amt-max" oninput="app.filterEmpTransactions()" placeholder="Max Amt ₹" style="width: 100px;">
         </div>
         <div id="reg-txn-container"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i></p></div>`;
         try {
             const res = await fetch(`${this.api}/transactions`, { headers: this.getHeaders() });
-            const txns = await res.json();
-            const container = document.getElementById('reg-txn-container');
-            if (!txns.length) { container.innerHTML = '<p class="error-text">No transactions found.</p>'; return; }
-            container.innerHTML = `<div class="registry-table-wrap"><table class="registry-table">
-                <thead><tr><th>TXN ID</th><th>From (Sender)</th><th>To (Receiver)</th><th>Amount</th><th>Method</th><th>Date</th><th>Actions</th></tr></thead>
-                <tbody>${txns.map(t => `
-                    <tr>
-                        <td style="color:var(--text3)">#${t.Txn_ID}</td>
-                        <td style="font-weight:700">${t.FName || 'System'} ${t.LName || ''}<br><span style="font-size:0.75rem; color:var(--text3); font-weight:normal">Acct: ${t.Account_No || 'N/A'}</span></td>
-                        <td>${t.Description ? t.Description : 'Self / External'}</td>
-                        <td style="color:${t.Transaction_Type==='CREDIT'?'var(--green)':'var(--text)'}; font-size:0.95rem;">${t.Transaction_Type==='CREDIT'?'+':'-'} ₹${this.fmt(t.Amount)}</td>
-                        <td><span class="badge badge-gold" style="background:var(--bg3);color:var(--text2)">${t.PayMethod || 'SYSTEM'}</span></td>
-                        <td>${new Date(t.Transaction_Date).toLocaleDateString()}</td>
-                        <td><div class="sli-actions"><button class="btn-review" style="padding:0.25rem 0.5rem" onclick="app.showTxnReviewModal(${t.Txn_ID}, '${t.Transaction_Type}', ${t.Amount}, '${(t.FName || 'System').replace(/'/g, ``)} ${(t.LName || '').replace(/'/g, ``)}', '${t.Account_No || 'N/A'}', '${t.PayMethod || 'SYSTEM'}', '${t.Transaction_Date}', '${(t.Description || 'Self / External').replace(/'/g, ``)}')">View</button></div></td>
-                    </tr>`).join('')}</tbody></table></div>`;
+            this._allTxns = await res.json();
+            this.filterEmpTransactions();
         } catch { document.getElementById('reg-txn-container').innerHTML = `<p class="error-text">Failed to load</p>`; }
     }
+
+    filterEmpTransactions() {
+        const txns = this._allTxns || [];
+        const search = (document.getElementById('txn-search')?.value || '').toLowerCase();
+        const typeF  = document.getElementById('txn-type-filter')?.value || '';
+        const statusF = document.getElementById('txn-status-filter')?.value || '';
+        const dateFrom = document.getElementById('txn-date-from')?.value;
+        const dateTo   = document.getElementById('txn-date-to')?.value;
+        const amtMin = parseFloat(document.getElementById('txn-amt-min')?.value);
+        const amtMax = parseFloat(document.getElementById('txn-amt-max')?.value);
+
+        const filtered = txns.filter(t => {
+            const name = `${t.FName || ''} ${t.LName || ''}`.toLowerCase();
+            const desc = (t.Description || '').toLowerCase();
+            const idStr = String(t.Txn_ID);
+            const acctStr = String(t.Account_No || '').toLowerCase();
+            const matchSearch = !search || name.includes(search) || desc.includes(search) || idStr.includes(search) || acctStr.includes(search);
+            const matchType   = !typeF   || t.Transaction_Type === typeF;
+            
+            const isFlagged = parseFloat(t.Amount || 0) > 50000;
+            let matchStatus = true;
+            if (statusF === 'FLAGGED') matchStatus = isFlagged;
+            if (statusF === 'COMPLETED') matchStatus = true; // all are completed in simulation
+
+            const txnDate = t.Transaction_Date ? new Date(t.Transaction_Date) : null;
+            const matchFrom = !dateFrom || (txnDate && txnDate >= new Date(dateFrom));
+            const matchTo   = !dateTo   || (txnDate && txnDate <= new Date(dateTo + 'T23:59:59'));
+            
+            const amt = parseFloat(t.Amount || 0);
+            const matchAmtMin = isNaN(amtMin) || amt >= amtMin;
+            const matchAmtMax = isNaN(amtMax) || amt <= amtMax;
+
+            return matchSearch && matchType && matchStatus && matchFrom && matchTo && matchAmtMin && matchAmtMax;
+        });
+
+        const container = document.getElementById('reg-txn-container');
+        if (!container) return;
+        if (!filtered.length) { container.innerHTML = '<p class="error-text" style="padding:1rem">No transactions match the filters.</p>'; return; }
+
+        container.innerHTML = `<div class="registry-table-wrap"><table class="registry-table">
+            <thead><tr><th>TXN ID</th><th>From (Sender)</th><th>To (Receiver)</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody>${filtered.map(t => {
+                const isFlagged = parseFloat(t.Amount || 0) > 50000;
+                return `
+                <tr ${isFlagged ? 'style="background:rgba(220,38,38,0.05)"' : ''}>
+                    <td style="color:var(--text3)">#${t.Txn_ID}</td>
+                    <td style="font-weight:700">${t.FName || 'System'} ${t.LName || ''}<br><span style="font-size:0.75rem; color:var(--text3); font-weight:normal">Acct: ${t.Account_No || 'N/A'}</span></td>
+                    <td>${t.Description ? t.Description : 'Self / External'}</td>
+                    <td style="color:${t.Transaction_Type==='CREDIT'?'var(--green)':'var(--text)'}; font-size:0.95rem;">${t.Transaction_Type==='CREDIT'?'+':'-'} \u20b9${this.fmt(t.Amount)}</td>
+                    <td><span class="badge badge-gold" style="background:var(--bg3);color:var(--text2)">${t.PayMethod || 'SYSTEM'}</span></td>
+                    <td><span class="badge ${isFlagged ? 'badge-red' : 'badge-green'}">${isFlagged ? 'FLAGGED' : 'COMPLETED'}</span></td>
+                    <td>${t.Transaction_Date ? new Date(t.Transaction_Date).toLocaleDateString('en-IN') : '\u2014'}</td>
+                    <td><div class="sli-actions"><button class="btn-review" style="padding:0.25rem 0.5rem" onclick="app.showTxnReviewModal(${t.Txn_ID}, '${t.Transaction_Type}', ${t.Amount}, '${(t.FName || 'System').replace(/'/g,'')} ${(t.LName || '').replace(/'/g,'')}', '${t.Account_No || 'N/A'}', '${t.PayMethod || 'SYSTEM'}', '${t.Transaction_Date}', '${(t.Description || 'Self / External').replace(/'/g,'')}')">View</button></div></td>
+                </tr>`;
+            }).join('')}</tbody></table></div>`;
+    }
+
 
     async renderEmpReports() {
         const el = document.getElementById('emp-main-content');
         el.innerHTML = `<div class="emp-dash-header" style="margin-bottom:1rem">
             <div><h2 class="emp-dash-title">Reports & Analytics</h2><p class="emp-dash-sub">Live bank performance metrics</p></div>
             <div style="display:flex;gap:0.5rem;align-items:center;">
+                <button class="btn-auth-submit" onclick="app.exportAdminReport()"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
                 <button class="btn-auth-outline theme-icon-btn" onclick="app.cycleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
             </div>
         </div>
@@ -1710,6 +1972,104 @@ class NexaBank {
                 <div class="checklist-item"><span style="color:var(--text)"><i class="fa-solid fa-check" style="color:#16a34a;margin-right:0.5rem"></i>Total Accounts Active — ${accsR.length}</span><span style="color:#16a34a">Healthy</span></div>`;
         } catch(e) {
             document.getElementById('rpt-summary').innerHTML = '<p class="error-text">Failed to load report data.</p>';
+        }
+    }
+
+    async exportAdminReport() {
+        if (!window.jspdf) { this.toast('PDF library not loaded.', 'error'); return; }
+        this.toast('Generating PDF...', 'info');
+        try {
+            const h = this.getHeaders();
+            const [loansR, accsR, txnsR, custsR] = await Promise.all([
+                fetch(`${this.api}/loans`,        { headers: h }).then(r => r.json()).catch(() => []),
+                fetch(`${this.api}/accounts`,     { headers: h }).then(r => r.json()).catch(() => []),
+                fetch(`${this.api}/transactions`, { headers: h }).then(r => r.json()).catch(() => []),
+                fetch(`${this.api}/customers`,    { headers: h }).then(r => r.json()).catch(() => [])
+            ]);
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const today = new Date().toLocaleDateString('en-IN');
+            const totalDeposits = accsR.reduce((s, a) => s + parseFloat(a.Balance || 0), 0);
+            const flagged = txnsR.filter(t => parseFloat(t.Amount || 0) > 50000).length;
+            const approved = loansR.filter(l => l.ApprovalStatus === 'APPROVED').length;
+            const pending  = loansR.filter(l => !l.ApprovalStatus || l.ApprovalStatus === 'PENDING').length;
+            const rejected = loansR.filter(l => l.ApprovalStatus === 'REJECTED').length;
+
+            // Header
+            doc.setFillColor(30, 27, 45);
+            doc.rect(0, 0, 220, 30, 'F');
+            doc.setTextColor(217, 160, 91);
+            doc.setFontSize(20);
+            doc.text('NexaBank', 14, 14);
+            doc.setTextColor(200, 200, 200);
+            doc.setFontSize(10);
+            doc.text('Admin Report — Generated on ' + today, 14, 22);
+
+            // Summary stats table
+            doc.setTextColor(30, 27, 45);
+            doc.setFontSize(13);
+            doc.text('Bank Overview', 14, 40);
+            doc.autoTable({
+                startY: 45,
+                head: [['Metric', 'Value']],
+                body: [
+                    ['Total Customers', custsR.length],
+                    ['Total Accounts', accsR.length],
+                    ['Total Deposits (Rs)', `Rs ${this.fmt(totalDeposits)}`],
+                    ['Total Transactions', txnsR.length],
+                    ['Flagged Transactions (>50k)', flagged],
+                    ['Total Loans', loansR.length],
+                    ['Loans Approved', approved],
+                    ['Loans Pending', pending],
+                    ['Loans Rejected', rejected]
+                ],
+                theme: 'striped',
+                headStyles: { fillColor: [217, 160, 91], textColor: [255,255,255] },
+                columnStyles: { 0: { fontStyle: 'bold' } }
+            });
+
+            // Loan breakdown
+            const finalY = doc.lastAutoTable.finalY + 10;
+            doc.setFontSize(13);
+            doc.text('Loan Portfolio Breakdown', 14, finalY);
+            const totalLoanAmt = loansR.reduce((s, l) => s + parseFloat(l.Requested_Amount || 0), 0);
+            doc.autoTable({
+                startY: finalY + 5,
+                head: [['Loan ID', 'Customer ID', 'Amount (Rs)', 'Status', 'Tenure (mo)']],
+                body: loansR.slice(0, 20).map(l => [
+                    `LN${String(l.LoanID).padStart(4,'0')}`,
+                    l.Cust_ID,
+                    `Rs ${this.fmt(l.Requested_Amount)}`,
+                    l.ApprovalStatus || 'PENDING',
+                    l.TenureMonths || '—'
+                ]),
+                theme: 'grid',
+                headStyles: { fillColor: [59, 130, 246] },
+                didParseCell: (data) => {
+                    if (data.column.index === 3) {
+                        const v = data.cell.raw;
+                        if (v === 'APPROVED') data.cell.styles.textColor = [22, 163, 74];
+                        else if (v === 'REJECTED') data.cell.styles.textColor = [220, 38, 38];
+                        else data.cell.styles.textColor = [217, 160, 91];
+                    }
+                }
+            });
+
+            // Footer
+            const pages = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text(`NexaBank Confidential — Page ${i} of ${pages}`, 14, doc.internal.pageSize.height - 10);
+            }
+
+            doc.save(`nexabank_report_${new Date().toISOString().split('T')[0]}.pdf`);
+            this.toast('Admin report exported successfully!', 'success');
+        } catch(e) {
+            console.error(e);
+            this.toast('Failed to export report: ' + e.message, 'error');
         }
     }
 
@@ -2068,11 +2428,14 @@ class NexaBank {
         const el = document.getElementById('emp-main-content');
         el.innerHTML = `<div class="emp-dash-header" style="margin-bottom:1rem">
             <div><h2 class="emp-dash-title">Employee Registry</h2><p class="emp-dash-sub">All NexaBank staff and their details</p></div>
-            <button class="btn-auth-outline theme-icon-btn" onclick="app.cycleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
+            <div style="display:flex;gap:0.5rem;align-items:center">
+                <button class="btn-auth-submit" onclick="app.showAddEmpModal()"><i class="fa-solid fa-user-plus"></i> Add Employee</button>
+                <button class="btn-auth-outline theme-icon-btn" onclick="app.cycleTheme()"><i class="fa-solid fa-circle-half-stroke"></i></button>
+            </div>
         </div>
         <div class="registry-toolbar">
-            <div class="registry-search"><i class="fa-solid fa-magnifying-glass" style="color:var(--text3)"></i>
-                <input type="text" id="emp-search" placeholder="Search employee..." oninput="app.filterEmpTable()"></div>
+            <div class="registry-search" style="flex:1;min-width:200px"><i class="fa-solid fa-magnifying-glass" style="color:var(--text3)"></i>
+                <input type="text" id="emp-search" placeholder="Search by name, email, role..." oninput="app.filterEmpTable()"></div>
             <select class="registry-filter" id="emp-dept-filter" onchange="app.filterEmpTable()">
                 <option value="ALL">All Departments</option>
                 <option value="Technology">Technology</option>
@@ -2100,23 +2463,25 @@ class NexaBank {
     _renderEmpTable(data) {
         const wrap = document.getElementById('emp-table-wrap');
         if (!wrap) return;
-        if (!data.length) { wrap.innerHTML = '<p class="error-text">No employees found.</p>'; return; }
+        if (!data.length) { wrap.innerHTML = '<p class="error-text" style="padding:1rem">No employees found.</p>'; return; }
         wrap.innerHTML = `<table class="registry-table">
             <thead><tr>
-                <th>S.No</th><th>EMP ID</th><th>Name</th><th>Email</th><th>Department</th>
-                <th>Role</th><th>City</th><th>Contact</th><th>Salary</th><th>Joined</th>
+                <th>#</th><th>EMP ID</th><th>Name</th><th>Email</th><th>Department</th>
+                <th>Role</th><th>Salary</th><th>Joined</th><th>Actions</th>
             </tr></thead>
             <tbody>${data.map((e, i) => `<tr>
-                <td style="color:var(--text3)">${e.RowNum || (i + 1)}</td>
-                <td style="color:var(--text3);font-weight:700">EMP${String(e.EID).padStart(3,'0')}</td>
-                <td><strong>${e.Name} ${e.LName||''}</strong></td>
-                <td style="color:var(--text2)">${e.Email || '—'}</td>
+                <td style="color:var(--text3)">${i + 1}</td>
+                <td style="font-family:monospace;font-weight:700;color:var(--gold2)">EMP${String(e.EID).padStart(3,'0')}</td>
+                <td><strong>${e.Name} ${e.LName||''}</strong><br><span style="font-size:0.75rem;color:var(--text3)">${e.City||''}</span></td>
+                <td style="color:var(--text2);font-size:0.85rem">${e.Email || '—'}</td>
                 <td><span style="display:inline-block;padding:0.2rem 0.6rem;background:rgba(240,192,64,0.12);color:var(--gold2);border-radius:6px;font-size:0.75rem;font-weight:700">${e.D_und || '—'}</span></td>
                 <td style="font-size:0.85rem;color:var(--text2)">${e.Responsibility || '—'}</td>
-                <td>${e.City || '—'}</td>
-                <td style="font-size:0.85rem">${e.ContactNo || '—'}</td>
-                <td style="color:var(--gold2);font-weight:700">₹${this.fmt(e.Salary)}</td>
-                <td style="color:var(--text3);font-size:0.82rem">${e.JoinedDate ? new Date(e.JoinedDate).toLocaleDateString('en-IN',{year:'numeric',month:'short',day:'numeric'}) : '—'}</td>
+                <td style="color:var(--green);font-weight:700">₹${this.fmt(e.Salary)}</td>
+                <td style="color:var(--text3);font-size:0.82rem">${e.JoinedDate ? new Date(e.JoinedDate).toLocaleDateString('en-IN',{year:'numeric',month:'short'}) : '—'}</td>
+                <td><div class="sli-actions">
+                    <button class="btn-review" style="padding:0.25rem 0.5rem" onclick="app.showEditEmpModal(${e.EID})"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn-review" style="padding:0.25rem 0.5rem;color:#dc2626;border-color:#fecaca;background:#fef2f2" onclick="app.deleteEmployee(${e.EID})"><i class="fa-solid fa-trash"></i></button>
+                </div></td>
             </tr>`).join('')}</tbody>
         </table>`;
     }
@@ -2131,6 +2496,91 @@ class NexaBank {
             return matchQ && matchD;
         });
         this._renderEmpTable(filtered);
+    }
+
+    _empModalHTML(title, emp = {}) {
+        const depts = ['Technology','Loans & Credit','Customer Relations','Management','Compliance & KYC','Finance & Accounts','Operations','Risk Management'];
+        return `
+        <div class="nexa-modal" style="max-width:550px">
+            <div class="nexa-modal-header">
+                <div class="nexa-modal-icon" style="background:rgba(59,130,246,0.12)"><i class="fa-solid fa-user-tie" style="color:#3b82f6"></i></div>
+                <div><div class="nexa-modal-title">${title}</div><div class="nexa-modal-sub">Fill in the employee details below</div></div>
+                <button class="nexa-modal-close" onclick="this.closest('.nexa-modal-overlay').remove()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
+                <div class="nexa-modal-field"><label>FIRST NAME *</label><input id="emp-f-name" class="nexa-modal-input" value="${emp.Name||''}" required></div>
+                <div class="nexa-modal-field"><label>LAST NAME</label><input id="emp-l-name" class="nexa-modal-input" value="${emp.LName||''}"></div>
+                <div class="nexa-modal-field"><label>EMAIL *</label><input id="emp-email" class="nexa-modal-input" type="email" value="${emp.Email||''}" required></div>
+                <div class="nexa-modal-field"><label>CONTACT NO</label><input id="emp-contact" class="nexa-modal-input" value="${emp.ContactNo||''}"></div>
+                <div class="nexa-modal-field"><label>CITY</label><input id="emp-city" class="nexa-modal-input" value="${emp.City||''}"></div>
+                <div class="nexa-modal-field"><label>SALARY (₹)</label><input id="emp-salary" class="nexa-modal-input" type="number" value="${emp.Salary||''}"></div>
+                <div class="nexa-modal-field"><label>DEPARTMENT</label>
+                    <select id="emp-dept" class="nexa-modal-input">${depts.map(d=>`<option ${(emp.D_und||'')==d?'selected':''}>${d}</option>`).join('')}</select>
+                </div>
+                <div class="nexa-modal-field"><label>ROLE / RESPONSIBILITY</label><input id="emp-role" class="nexa-modal-input" value="${emp.Responsibility||''}"></div>
+            </div>
+            <div style="display:flex;gap:1rem;margin-top:1.5rem">
+                <button class="btn-auth-outline" style="flex:1" onclick="this.closest('.nexa-modal-overlay').remove()">Cancel</button>
+                <button class="btn-auth-submit" style="flex:1" id="emp-save-btn" onclick="app._submitEmpForm(${emp.EID || 0})">${emp.EID ? 'Save Changes' : 'Add Employee'}</button>
+            </div>
+        </div>`;
+    }
+
+    showAddEmpModal() {
+        const old = document.getElementById('empModal'); if(old) old.remove();
+        const ov = document.createElement('div');
+        ov.className = 'nexa-modal-overlay';
+        ov.id = 'empModal';
+        ov.innerHTML = this._empModalHTML('Add New Employee');
+        document.body.appendChild(ov);
+        setTimeout(() => ov.classList.add('active'), 10);
+    }
+
+    showEditEmpModal(eid) {
+        const emp = this._empData?.find(e => e.EID === eid);
+        if (!emp) return;
+        const old = document.getElementById('empModal'); if(old) old.remove();
+        const ov = document.createElement('div');
+        ov.className = 'nexa-modal-overlay';
+        ov.id = 'empModal';
+        ov.innerHTML = this._empModalHTML(`Edit Employee — EMP${String(eid).padStart(3,'0')}`, emp);
+        document.body.appendChild(ov);
+        setTimeout(() => ov.classList.add('active'), 10);
+    }
+
+    async _submitEmpForm(eid) {
+        const body = {
+            Name: document.getElementById('emp-f-name').value.trim(),
+            LName: document.getElementById('emp-l-name').value.trim(),
+            Email: document.getElementById('emp-email').value.trim(),
+            ContactNo: document.getElementById('emp-contact').value.trim(),
+            City: document.getElementById('emp-city').value.trim(),
+            Salary: parseFloat(document.getElementById('emp-salary').value) || 0,
+            D_und: document.getElementById('emp-dept').value,
+            Responsibility: document.getElementById('emp-role').value.trim()
+        };
+        if (!body.Name || !body.Email) { this.toast('Name and Email are required.', 'error'); return; }
+
+        try {
+            const method = eid ? 'PUT' : 'POST';
+            const url = eid ? `${this.api}/employees/${eid}` : `${this.api}/employees`;
+            const res = await fetch(url, { method, headers: this.getHeaders(), body: JSON.stringify(body) });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Operation failed');
+            this.toast(eid ? 'Employee updated!' : 'Employee added!', 'success');
+            document.getElementById('empModal').remove();
+            this.renderEmpEmployees();
+        } catch(e) { this.toast(e.message, 'error'); }
+    }
+
+    async deleteEmployee(eid) {
+        if (!confirm(`Delete EMP${String(eid).padStart(3,'0')}? This cannot be undone.`)) return;
+        try {
+            const res = await fetch(`${this.api}/employees/${eid}`, { method: 'DELETE', headers: this.getHeaders() });
+            if (!res.ok) throw new Error('Delete failed');
+            this.toast('Employee removed.', 'success');
+            this.renderEmpEmployees();
+        } catch(e) { this.toast(e.message, 'error'); }
     }
 
     async updateApprovalStatus(type, id, status) {
