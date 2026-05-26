@@ -7,5 +7,6 @@ router.post('/',                    ctrl.create);
 router.put('/:id/status',           ctrl.updateStatus);
 router.get('/:id/terms',            ctrl.getTermDetails);
 router.post('/:id/terms',           ctrl.addTermDetail);
+router.get('/:id/emis',             ctrl.getEMIs);
 
 module.exports = router;

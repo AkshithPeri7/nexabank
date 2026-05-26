@@ -532,6 +532,7 @@ class NexaBank {
         if (section === 'loans')        this.renderCustLoans();
         if (section === 'investments')  this.renderCustInvestments();
         if (section === 'creditcards')  this.renderCustCreditCards();
+        if (section === 'payees')       this.renderCustPayees();
         if (section === 'profile')      this.renderProfile();
     }
 
@@ -729,6 +730,101 @@ class NexaBank {
         }
     }
 
+
+    async renderCustPayees() {
+        const el = document.getElementById('cust-main-content');
+        el.innerHTML = `<div class="cust-inner"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i> Loading Payees...</p></div>`;
+        try {
+            const res = await fetch(`${this.api}/beneficiaries/${this.userId}`, { headers: this.getHeaders() });
+            const payees = await res.json();
+            
+            el.innerHTML = `<div class="cust-inner">
+                <div class="cust-page-header">
+                    <div><h1 class="cust-greeting">Beneficiaries</h1><p class="cust-greet-sub">Manage your saved payees for quick transfers</p></div>
+                    <button class="btn-new-txn" onclick="app.showAddPayeeModal()">+ Add Payee</button>
+                </div>
+                <div class="cust-card">
+                    <div class="cust-card-header"><span class="cust-card-title">Saved Payees</span></div>
+                    <div class="premium-table-wrap">
+                        <table class="premium-table">
+                            <thead><tr><th>PAYEE NAME</th><th>ACCOUNT NUMBER</th><th>ACTIONS</th></tr></thead>
+                            <tbody>${!payees.length
+                                ? `<tr><td colspan="3" class="tbl-empty">No saved payees found.</td></tr>`
+                                : payees.map(p => `<tr>
+                                    <td>${p.Ben_Name}</td>
+                                    <td>${p.Ben_Account_No}</td>
+                                    <td><button class="btn-auth-outline" style="border-color:var(--red); color:var(--red); padding: 0.25rem 0.75rem;" onclick="app.deletePayee(${p.Ben_ID})">Delete</button></td>
+                                </tr>`).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
+        } catch(e) {
+            el.innerHTML = `<p style="color:var(--red)">Failed to load payees: ${e.message}</p>`;
+        }
+    }
+
+    showAddPayeeModal() {
+        const old = document.getElementById('addPayeeModal'); if(old) old.remove();
+        const ov = document.createElement('div');
+        ov.className = 'nexa-modal-overlay active';
+        ov.id = 'addPayeeModal';
+        ov.innerHTML = `
+            <div class="nexa-modal" style="max-width: 400px">
+                <div class="nexa-modal-header">
+                    <h3 class="nexa-modal-title">Add New Payee</h3>
+                    <button class="nexa-modal-close" onclick="this.closest('.nexa-modal-overlay').remove()"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form id="payee-form" onsubmit="event.preventDefault(); app.addPayee();">
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label class="form-label">Payee Name</label>
+                        <input type="text" id="payee-name" class="form-input" required>
+                    </div>
+                    <div class="form-group" style="margin-top:1rem; margin-bottom: 1.5rem;">
+                        <label class="form-label">Account Number</label>
+                        <input type="number" id="payee-acc" class="form-input" required>
+                    </div>
+                    <button type="submit" class="btn-auth-submit" style="width:100%">Save Payee</button>
+                </form>
+            </div>`;
+        document.body.appendChild(ov);
+    }
+
+    async addPayee() {
+        const name = document.getElementById('payee-name').value;
+        const acc = document.getElementById('payee-acc').value;
+        try {
+            const res = await fetch(`${this.api}/beneficiaries/${this.userId}`, {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify({ Ben_Name: name, Ben_Account_No: acc })
+            });
+            const data = await res.json();
+            if(!res.ok) throw new Error(data.error || 'Failed to add payee');
+            this.toast('Payee added successfully!', 'success');
+            document.getElementById('addPayeeModal').remove();
+            this.renderCustPayees();
+        } catch(e) {
+            this.toast(e.message, 'error');
+        }
+    }
+
+    async deletePayee(benId) {
+        if(!confirm('Are you sure you want to delete this payee?')) return;
+        try {
+            const res = await fetch(`${this.api}/beneficiaries/${benId}`, {
+                method: 'DELETE',
+                headers: this.getHeaders()
+            });
+            if(!res.ok) throw new Error('Failed to delete payee');
+            this.toast('Payee deleted.', 'success');
+            this.renderCustPayees();
+        } catch(e) {
+            this.toast(e.message, 'error');
+        }
+    }
+
     async renderCustTransactions() {
         const el = document.getElementById('cust-main-content');
         el.innerHTML = `<div class="cust-inner"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i></p></div>`;
@@ -739,7 +835,7 @@ class NexaBank {
             el.innerHTML = `<div class="cust-inner">
             <div class="cust-page-header">
                 <div><h1 class="cust-greeting">Transactions</h1><p class="cust-greet-sub">All your transaction history</p></div>
-                <div style="display:flex;gap:0.5rem;"><button class="btn-new-txn" onclick="app.exportCustomerStatement()"><i class="fa-solid fa-download"></i> Statement</button><button class="btn-new-txn" onclick="app.openTransferModal()">+ Fund Transfer</button></div>
+                <div style="display:flex;gap:0.5rem;"><button class="btn-new-txn" onclick="app.exportCustomerStatement()"><i class="fa-solid fa-download"></i> Statement</button><button class="btn-new-txn" onclick="app.openBillPayModal()"><i class="fa-solid fa-file-invoice-dollar"></i> Pay Bills</button><button class="btn-new-txn" onclick="app.openTransferModal()">+ Fund Transfer</button></div>
             </div>
             <div class="cust-card">
                 <div class="cust-card-header"><span class="cust-card-title">All Transactions</span></div>
@@ -790,33 +886,155 @@ class NexaBank {
             <div class="cust-card">
                 <div class="premium-table-wrap">
                 <table class="premium-table">
-                    <thead><tr><th>LOAN ID</th><th>TYPE</th><th>AMOUNT</th><th>RATE</th><th>TENURE</th><th>STATUS</th><th>DATE</th></tr></thead>
-                    <tbody>${!filtered.length
-                        ? `<tr><td colspan="7" class="tbl-empty">No ${filter==='ALL'?'':filter.toLowerCase()} loans found.</td></tr>`
-                        : filtered.map(l => {
-                            const s = (l.ApprovalStatus||'PENDING').toUpperCase();
-                            const badgeClass = s==='APPROVED'?'badge-green':s==='REJECTED'?'badge-red':'badge-gold';
-                            return `<tr>
-                                <td class="tbl-id">LN${String(l.LoanID).padStart(4,'0')}</td>
-                                <td>${l.PickupLocation||'Personal'}</td>
-                                <td>₹${this.fmt(l.Requested_Amount)}</td>
-                                <td>${l.LoanRate||'—'}%</td>
-                                <td>${l.TenureMonths||'—'}mo</td>
-                                <td><span class="tbl-badge ${badgeClass}">${s}</span></td>
-                                <td>${l.CreatedAt?new Date(l.CreatedAt).toLocaleDateString('en-IN'):'—'}</td>
-                            </tr>`;
-                        }).join('')}
-                    </tbody>
-                </table>
-                </div>
-            </div></div>`;
+                     <thead><tr><th>LOAN ID</th><th>TYPE</th><th>AMOUNT</th><th>RATE</th><th>TENURE</th><th>STATUS</th><th>DATE</th><th>EMI</th></tr></thead>
+                     <tbody>${!filtered.length
+                         ? `<tr><td colspan="8" class="tbl-empty">No ${filter==='ALL'?'':filter.toLowerCase()} loans found.</td></tr>`
+                         : filtered.map(l => {
+                             const s = (l.ApprovalStatus||'PENDING').toUpperCase();
+                             const badgeClass = s==='APPROVED'?'badge-green':s==='REJECTED'?'badge-red':'badge-gold';
+                             return `<tr>
+                                 <td class="tbl-id">LN${String(l.LoanID).padStart(4,'0')}</td>
+                                 <td>${l.PickupLocation||'Personal'}</td>
+                                 <td>₹${this.fmt(l.Requested_Amount)}</td>
+                                 <td>${l.LoanRate||'—'}%</td>
+                                 <td>${l.TenureMonths||'—'}mo</td>
+                                 <td><span class="tbl-badge ${badgeClass}">${s}</span></td>
+                                 <td>${l.CreatedAt?new Date(l.CreatedAt).toLocaleDateString('en-IN'):'—'}</td>
+                                 <td>${s==='APPROVED'?`<button class="btn-auth-outline" style="padding:0.25rem 0.6rem;font-size:0.8rem" onclick="app.viewEMISchedule(${l.LoanID})">EMI Schedule</button>`:'—'}</td>
+                             </tr>`;
+                         }).join('')}
+                     </tbody>
+                 </table>
+                 </div>
+             </div></div>`;
         } catch {
             el.innerHTML = `<div class="cust-inner"><p class="error-text">Could not load loans.</p></div>`;
         }
     }
 
+    async viewEMISchedule(loanId) {
+        try {
+            const res = await fetch(`${this.api}/loans/${loanId}/emis`, { headers: this.getHeaders() });
+            const emis = await res.json();
+            const old = document.getElementById('emiModal'); if(old) old.remove();
+            const ov = document.createElement('div');
+            ov.className = 'nexa-modal-overlay active';
+            ov.id = 'emiModal';
+            ov.innerHTML = `
+                <div class="nexa-modal" style="max-width:700px">
+                    <div class="nexa-modal-header">
+                        <div class="nexa-modal-icon" style="background:rgba(59,130,246,0.12)"><i class="fa-solid fa-calendar-days" style="color:#3b82f6"></i></div>
+                        <div><div class="nexa-modal-title">EMI Schedule — LN${String(loanId).padStart(4,'0')}</div><div class="nexa-modal-sub">${emis.length} installments</div></div>
+                        <button class="nexa-modal-close" onclick="this.closest('.nexa-modal-overlay').remove()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="premium-table-wrap" style="max-height:400px;overflow-y:auto;margin-top:1rem">
+                    <table class="premium-table">
+                        <thead><tr><th>#</th><th>DUE DATE</th><th>EMI AMOUNT</th><th>PRINCIPAL</th><th>INTEREST</th><th>STATUS</th></tr></thead>
+                        <tbody>${!emis.length
+                            ? '<tr><td colspan="6" class="tbl-empty">No EMI schedule generated yet.</td></tr>'
+                            : emis.map((e,i) => `<tr>
+                                <td style="color:var(--text2)">${i+1}</td>
+                                <td>${new Date(e.DueDate).toLocaleDateString('en-IN')}</td>
+                                <td><strong>₹${this.fmt(e.EMIAmount)}</strong></td>
+                                <td style="color:var(--blue)">₹${this.fmt(e.PrincipalComponent)}</td>
+                                <td style="color:var(--red)">₹${this.fmt(e.InterestComponent)}</td>
+                                <td><span class="tbl-badge ${e.Status==='PAID'?'badge-green':e.Status==='OVERDUE'?'badge-red':'badge-gold'}">${e.Status}</span></td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                    </div>
+                    <button class="btn-auth-submit" style="width:100%;margin-top:1rem" onclick="this.closest('.nexa-modal-overlay').remove()">Close</button>
+                </div>`;
+            document.body.appendChild(ov);
+        } catch(e) {
+            this.toast('Failed to load EMI schedule.', 'error');
+        }
+    }
+
     // ─── MODALS ────────────────────────────────────────────────
-    openTransferModal() {
+
+    openBillPayModal() {
+        const m = document.createElement('div');
+        m.id = 'nexaModal';
+        m.className = 'nexa-modal-overlay';
+        m.innerHTML = `
+        <div class="nexa-modal" style="max-width: 420px">
+            <div class="nexa-modal-header">
+                <div class="nexa-modal-icon" style="background:rgba(16,185,129,0.12)"><i class="fa-solid fa-file-invoice-dollar" style="color:#10b981"></i></div>
+                <div><div class="nexa-modal-title">UPI / Bill Payments</div><div class="nexa-modal-sub">Instant merchant payments</div></div>
+            </div>
+            <div class="nexa-modal-field"><label>BILLER CATEGORY</label>
+                <select id="bp-category" class="nexa-modal-input">
+                    <option value="Electricity Bill">Electricity</option>
+                    <option value="Mobile Recharge">Mobile Recharge</option>
+                    <option value="Credit Card Bill">Credit Card</option>
+                    <option value="Broadband Bill">Broadband</option>
+                    <option value="Water Bill">Water</option>
+                </select>
+            </div>
+            <div class="nexa-modal-field"><label>CONSUMER / ACCOUNT / MOBILE NUMBER</label><input id="bp-acc" class="nexa-modal-input" placeholder="e.g. 9876543210"></div>
+            <div class="nexa-modal-field"><label>AMOUNT (₹)</label><input id="bp-amount" class="nexa-modal-input" type="number" placeholder="500"></div>
+            <div style="display:flex;gap:1rem;margin-top:1.5rem">
+                <button class="btn-auth-outline" style="flex:1" onclick="this.closest('.nexa-modal-overlay').remove()">Cancel</button>
+                <button class="btn-auth-submit" style="flex:1" onclick="app.processBillPayment()">Pay Now</button>
+            </div>
+        </div>`;
+        document.body.appendChild(m);
+        setTimeout(() => m.classList.add('active'), 10);
+    }
+
+    async processBillPayment() {
+        if (!this.userId) return;
+        const cat = document.getElementById('bp-category').value;
+        const acc = document.getElementById('bp-acc').value;
+        const amt = document.getElementById('bp-amount').value;
+        if (!acc || !amt || amt <= 0) { this.toast('Valid details and amount required.', 'error'); return; }
+
+        try {
+            // Find a savings account for the user to debit from
+            const acR = await fetch(`${this.api}/accounts`, { headers: this.getHeaders() });
+            const accounts = await acR.json();
+            const myAcc = accounts.find(a => a.CustID === this.userId);
+            if (!myAcc) throw new Error('No active account found to debit.');
+
+            const res = await fetch(`${this.api}/transactions`, {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify({
+                    Account_No: myAcc.Account_No,
+                    CustID: this.userId,
+                    Amount: amt,
+                    Transaction_Type: 'DEBIT',
+                    Description: `${cat} - ${acc}`,
+                    PayMethod: 'UPI'
+                })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Payment failed');
+            
+            document.getElementById('nexaModal').remove();
+            this.toast('Payment successful!', 'success');
+            this.renderCustTransactions();
+            
+            // Also deduct balance from frontend immediately for UI responsiveness if balance is tracked (it's fetched again on dash load so we're fine)
+        } catch(e) {
+            this.toast(e.message, 'error');
+        }
+    }
+
+    async openTransferModal() {
+
+        let payeeOptions = '<option value="">-- Choose Payee --</option>';
+        try {
+            if(this.userId) {
+                const res = await fetch(`${this.api}/beneficiaries/${this.userId}`, { headers: this.getHeaders() });
+                const payees = await res.json();
+                if(payees.length) {
+                    payeeOptions += payees.map(p => `<option value="${p.Ben_Account_No}">${p.Ben_Name} - ${p.Ben_Account_No}</option>`).join('');
+                }
+            }
+        } catch(e) {}
+
         const m = document.createElement('div');
         m.id = 'nexaModal';
         m.className = 'nexa-modal-overlay';
@@ -825,6 +1043,11 @@ class NexaBank {
             <div class="nexa-modal-header">
                 <div class="nexa-modal-icon" style="background:rgba(240,192,64,0.12)"><i class="fa-solid fa-bolt" style="color:#f0c040"></i></div>
                 <div><div class="nexa-modal-title">Quick Transfer</div><div class="nexa-modal-sub">Instant fund transfer</div></div>
+            </div>
+            <div class="nexa-modal-field"><label>SAVED PAYEE</label>
+                <select class="nexa-modal-input" onchange="if(this.value) document.getElementById('tf-acct').value = this.value;">
+                    ${payeeOptions}
+                </select>
             </div>
             <div class="nexa-modal-field"><label>CUSTOMER ID <span style="text-transform:none;color:#9ca3af;font-weight:normal">(Optional)</span></label><input id="tf-cust" class="nexa-modal-input" placeholder="e.g. 2001"></div>
             <div class="nexa-modal-field"><label>ACCOUNT NUMBER</label><input id="tf-acct" class="nexa-modal-input" placeholder="e.g. 1000000001"></div>
@@ -925,19 +1148,54 @@ class NexaBank {
         } catch(err) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
     }
 
+
     async renderCustInvestments() {
         const el = document.getElementById('cust-main-content');
         el.innerHTML = `<div class="cust-inner"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i></p></div>`;
         try {
-            const res = await fetch(`${this.api}/investments`, { headers: this.getHeaders() });
-            let invs = await res.json();
+            const [resInv, resFD] = await Promise.all([
+                fetch(`${this.api}/investments`, { headers: this.getHeaders() }),
+                fetch(`${this.api}/fixed-deposits/${this.userId}`, { headers: this.getHeaders() })
+            ]);
+            let invs = await resInv.json();
             invs = invs.filter(i => i.Cust_ID === this.userId);
+            
+            let fds = [];
+            if(resFD.ok) fds = await resFD.json();
+
             el.innerHTML = `<div class="cust-inner">
             <div class="cust-page-header">
-                <div><h1 class="cust-greeting">Investments</h1><p class="cust-greet-sub">Grow your wealth</p></div>
-                <button class="btn-new-txn" onclick="app.applyInvestment()">+ New Investment</button>
+                <div><h1 class="cust-greeting">Investments & FDs</h1><p class="cust-greet-sub">Grow your wealth safely</p></div>
+                <div style="display:flex;gap:0.5rem">
+                    <button class="btn-new-txn" onclick="app.openFDModal()"><i class="fa-solid fa-piggy-bank"></i> Book FD</button>
+                    <button class="btn-new-txn" onclick="app.applyInvestment()">+ New Investment</button>
+                </div>
             </div>
+            
+            <!-- FIXED DEPOSITS TABLE -->
+            <div class="cust-card" style="margin-bottom:1.5rem">
+                <div class="cust-card-header"><span class="cust-card-title">My Fixed Deposits (FDs)</span></div>
+                <div class="premium-table-wrap">
+                <table class="premium-table">
+                    <thead><tr><th>FD ID</th><th>PRINCIPAL</th><th>RATE</th><th>TENURE</th><th>MATURITY DATE</th><th>MATURITY AMT</th><th>STATUS</th></tr></thead>
+                    <tbody>${!fds.length ? `<tr><td colspan="7" class="tbl-empty">No active Fixed Deposits found.</td></tr>` : fds.map(f => `
+                            <tr>
+                                <td class="tbl-id">FD${String(f.FD_ID).padStart(4,'0')}</td>
+                                <td>₹${this.fmt(f.Principal)}</td>
+                                <td>${f.InterestRate}%</td>
+                                <td>${f.TenureMonths} Months</td>
+                                <td>${f.MaturityDate?new Date(f.MaturityDate).toLocaleDateString('en-IN'):'—'}</td>
+                                <td style="color:var(--green)">₹${this.fmt(f.MaturityAmount)}</td>
+                                <td><span class="tbl-badge ${f.Status==='ACTIVE'?'badge-green':'badge-gold'}">${f.Status}</span></td>
+                            </tr>`).join('')}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+
+            <!-- OTHER INVESTMENTS TABLE -->
             <div class="cust-card">
+                <div class="cust-card-header"><span class="cust-card-title">Other Investments</span></div>
                 <div class="premium-table-wrap">
                 <table class="premium-table">
                     <thead><tr><th>ID</th><th>TYPE</th><th>AMOUNT</th><th>DURATION</th><th>STATUS</th><th>DATE</th></tr></thead>
@@ -955,6 +1213,103 @@ class NexaBank {
                 </div>
             </div></div>`;
         } catch(e) { el.innerHTML = `<p class="error-text">Could not load investments.</p>`; }
+    }
+
+    openFDModal() {
+        const m = document.createElement('div');
+        m.id = 'nexaModal';
+        m.className = 'nexa-modal-overlay';
+        m.innerHTML = `
+        <div class="nexa-modal" style="max-width: 450px">
+            <div class="nexa-modal-header">
+                <div class="nexa-modal-icon" style="background:rgba(245,158,11,0.12)"><i class="fa-solid fa-piggy-bank" style="color:#f59e0b"></i></div>
+                <div><div class="nexa-modal-title">Book Fixed Deposit</div><div class="nexa-modal-sub">Earn up to 7.5% p.a.</div></div>
+            </div>
+            <div class="nexa-modal-field"><label>PRINCIPAL AMOUNT (₹)</label><input id="fd-principal" class="nexa-modal-input" type="number" placeholder="min. 10000" oninput="app.calcFDMaturity()"></div>
+            <div class="nexa-modal-field"><label>TENURE (Months)</label>
+                <select id="fd-tenure" class="nexa-modal-input" onchange="app.calcFDMaturity()">
+                    <option value="6">6 Months (5.0%)</option>
+                    <option value="12">1 Year (6.5%)</option>
+                    <option value="24">2 Years (6.5%)</option>
+                    <option value="36">3 Years (7.0%)</option>
+                    <option value="60">5 Years (7.5%)</option>
+                </select>
+            </div>
+            
+            <div style="background: var(--bg); padding: 1rem; border-radius: 8px; margin-top: 1rem; border: 1px solid var(--border);">
+                <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;"><span style="color:var(--text2)">Interest Rate</span><strong id="fd-rate-disp">5.0% p.a.</strong></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:var(--text2)">Estimated Maturity</span><strong id="fd-mat-disp" style="color:var(--green)">₹0.00</strong></div>
+            </div>
+
+            <div style="display:flex;gap:1rem;margin-top:1.5rem">
+                <button class="btn-auth-outline" style="flex:1" onclick="this.closest('.nexa-modal-overlay').remove()">Cancel</button>
+                <button class="btn-auth-submit" style="flex:1" onclick="app.bookFD()">Confirm Booking</button>
+            </div>
+        </div>`;
+        document.body.appendChild(m);
+        setTimeout(() => m.classList.add('active'), 10);
+    }
+
+    calcFDMaturity() {
+        const pInput = document.getElementById('fd-principal').value;
+        const p = parseFloat(pInput) || 0;
+        const t = parseInt(document.getElementById('fd-tenure').value);
+        let rate = 5.0;
+        if(t >= 12) rate = 6.5;
+        if(t >= 36) rate = 7.0;
+        if(t >= 60) rate = 7.5;
+        
+        document.getElementById('fd-rate-disp').textContent = rate.toFixed(1) + '% p.a.';
+        const mat = p + (p * rate * (t/12) / 100);
+        document.getElementById('fd-mat-disp').textContent = '₹' + this.fmt(mat);
+    }
+
+    async bookFD() {
+        if(!this.userId) return;
+        const principal = document.getElementById('fd-principal').value;
+        const tenure = document.getElementById('fd-tenure').value;
+        if(!principal || principal < 1000) {
+            this.toast('Minimum principal amount is ₹1,000', 'error');
+            return;
+        }
+
+        try {
+            // Check balance
+            const acR = await fetch(`${this.api}/accounts`, { headers: this.getHeaders() });
+            const accounts = await acR.json();
+            const myAcc = accounts.find(a => a.CustID === this.userId);
+            if(!myAcc || parseFloat(myAcc.Balance) < principal) {
+                throw new Error('Insufficient balance in savings account to book FD.');
+            }
+
+            const res = await fetch(`${this.api}/fixed-deposits/${this.userId}`, {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify({ Principal: principal, TenureMonths: tenure })
+            });
+            const data = await res.json();
+            if(!res.ok) throw new Error(data.error || 'Failed to book FD');
+
+            // Debit the account
+            await fetch(`${this.api}/transactions`, {
+                method: 'POST',
+                headers: this.getHeaders(),
+                body: JSON.stringify({
+                    Account_No: myAcc.Account_No,
+                    CustID: this.userId,
+                    Amount: principal,
+                    Transaction_Type: 'DEBIT',
+                    Description: 'Fixed Deposit Booking',
+                    PayMethod: 'INTERNAL'
+                })
+            });
+
+            document.getElementById('nexaModal').remove();
+            this.toast('Fixed Deposit booked successfully!', 'success');
+            this.renderCustInvestments();
+        } catch(e) {
+            this.toast(e.message, 'error');
+        }
     }
 
     async renderCustCreditCards() {

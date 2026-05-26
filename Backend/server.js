@@ -24,6 +24,8 @@ initDatabase()
         app.use('/api/transactions', require('./routes/transaction'));
         app.use('/api/loans',        require('./routes/loan'));
         app.use('/api/payments',     require('./routes/payment'));
+        app.use('/api/beneficiaries', require('./routes/beneficiary'));
+        app.use('/api/fixed-deposits', require('./routes/fixedDeposit'));
         app.use('/api/audit',        require('./routes/audit'));
         app.use('/api/credit-cards', require('./routes/creditCard'));
         app.use('/api/investments',  require('./routes/investment'));
