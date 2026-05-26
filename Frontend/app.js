@@ -13,6 +13,35 @@ class NexaBank {
         this.init();
     }
 
+    
+    toast(message, type = 'info') {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            document.body.appendChild(container);
+        }
+        
+        const toast = document.createElement('div');
+        toast.className = 'nx-toast ' + type;
+        
+        const icons = { success: 'fa-check-circle', error: 'fa-triangle-exclamation', info: 'fa-info-circle' };
+        const icon = icons[type] || icons.info;
+        
+        toast.innerHTML = `<i class="fa-solid ${icon} nx-toast-icon"></i>
+            <div style="flex:1">${message}</div>
+            <button class="nx-toast-close" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>`;
+            
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.style.animation = 'toastSlideOut 0.3s ease-in forwards';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 4000);
+    }
+
     init() {
         this.applyTheme(this.theme);
         this.handleSupabaseRedirect();
@@ -210,14 +239,14 @@ class NexaBank {
             const fields = ['reg-fname','reg-lname','reg-email','reg-phone','reg-dob'];
             for (const f of fields) {
                 if (!document.getElementById(f).value.trim()) {
-                    alert('Please fill in all personal details.'); return;
+                    this.toast('Please fill in all personal details.', 'error'); return;
                 }
             }
         }
         if (step === 3) {
             const deposit = document.getElementById('reg-deposit').value;
             if (!deposit || parseFloat(deposit) < 500) {
-                alert('Minimum deposit is ₹500.'); return;
+                this.toast('Minimum deposit is ₹500.', 'error'); return;
             }
         }
         this.goToStep(step);
@@ -286,7 +315,7 @@ class NexaBank {
     // ─── SUPABASE GOOGLE AUTH ──────────────────────────────────
     async loginWithGoogle() {
         if (!window.supabase) {
-            alert('Supabase is not initialized. Please configure it in index.html first!');
+            this.toast('Supabase is not initialized. Please configure it in index.html first!', 'error');
             return;
         }
         try {
@@ -302,7 +331,7 @@ class NexaBank {
             });
             if (error) throw error;
         } catch (err) {
-            alert('Google login failed: ' + err.message);
+            this.toast('Google login failed: ' + err.message, 'error');
         }
     }
 
@@ -342,7 +371,7 @@ class NexaBank {
                     this._completeGoogleLogin(data);
                 }
             } catch (err) {
-                alert('Google Authentication Error: ' + err.message);
+                this.toast('Google Authentication Error: ' + err.message, 'error');
             }
         }
     }
@@ -539,6 +568,12 @@ class NexaBank {
         <div class="cust-two-col">
             <div class="cust-card"><div class="cust-card-header"><span class="cust-card-title">Recent Transactions</span><button class="cust-view-all" onclick="app.loadCustSection('transactions')">View All</button></div><div id="d-txns"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i></p></div></div>
             <div class="cust-card"><div class="cust-card-header"><span class="cust-card-title">My Accounts</span><button class="cust-view-all" onclick="app.loadCustSection('accounts')">Manage</button></div><div id="d-accts"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i></p></div></div>
+        </div>
+        <div class="cust-card" style="margin-top: 1.5rem;">
+            <div class="cust-card-header"><span class="cust-card-title">Spending Analytics (All Time)</span></div>
+            <div style="height: 300px; display: flex; justify-content: center; align-items: center; padding: 1rem; width: 100%;">
+                <canvas id="spendChart"></canvas>
+            </div>
         </div></div>`;
         try {
             const [acR, trR, lnR] = await Promise.all([
@@ -562,6 +597,47 @@ class NexaBank {
             }).join('') : '<p style="color:#999;text-align:center;padding:1rem">No transactions yet.</p>';
             const acctEl = document.getElementById('d-accts');
             acctEl.innerHTML = accounts.length ? accounts.map(a => `<div class="dash-acct-mini"><div class="dash-acct-mini-type">${a.AccountType||'SAVINGS'} Account</div><div class="dash-acct-mini-bal">₹${this.fmt(a.Balance)}</div><div class="dash-acct-mini-num">•••• •••• ${String(a.Account_No).slice(-4)}</div></div>`).join('') : '<p style="color:#999;text-align:center;padding:1rem">No accounts found.</p>';
+
+            // Render Spending Analytics Chart
+            const debits = txns.filter(t => t.Transaction_Type === 'DEBIT');
+            let cats = { 'Transfers': 0, 'Bills & Utilities': 0, 'Shopping': 0, 'Others': 0 };
+            debits.forEach(t => {
+                const desc = (t.Description || '').toLowerCase();
+                const amt = parseFloat(t.Amount);
+                if (desc.includes('bill') || desc.includes('recharge') || desc.includes('electricity')) cats['Bills & Utilities'] += amt;
+                else if (desc.includes('transfer') || desc.includes('sent')) cats['Transfers'] += amt;
+                else if (desc.includes('amazon') || desc.includes('flipkart') || desc.includes('shop')) cats['Shopping'] += amt;
+                else cats['Others'] += amt;
+            });
+
+            const ctx = document.getElementById('spendChart');
+            if (ctx && window.Chart) {
+                if (window.spendChartInstance) window.spendChartInstance.destroy();
+                const hasData = Object.values(cats).some(v => v > 0);
+                if (!hasData) {
+                    ctx.parentElement.innerHTML = '<p style="color:var(--text3)">Not enough data to display analytics.</p>';
+                } else {
+                    window.spendChartInstance = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: Object.keys(cats),
+                            datasets: [{
+                                data: Object.values(cats),
+                                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
+                                borderWidth: 0,
+                                hoverOffset: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'right', labels: { color: this.theme === 'light' ? '#333' : '#fff' } }
+                            }
+                        }
+                    });
+                }
+            }
         } catch {}
     }
 
@@ -618,6 +694,41 @@ class NexaBank {
         }
     }
 
+    
+    async exportCustomerStatement() {
+        if (!this.userId) return;
+        try {
+            const res = await fetch(`${this.api}/transactions`, { headers: this.getHeaders() });
+            const allTxns = await res.json();
+            const txns = allTxns.filter(t => t.CustID === this.userId);
+            if (!txns.length) {
+                this.toast('No transactions to export.', 'info');
+                return;
+            }
+            const rows = [['Transaction ID', 'Date', 'Description', 'Type', 'Amount']];
+            txns.forEach(t => {
+                rows.push([
+                    t.Txn_ID,
+                    t.Transaction_Date ? new Date(t.Transaction_Date).toLocaleDateString('en-IN') : '',
+                    t.Description || 'Transfer',
+                    t.Transaction_Type,
+                    t.Amount
+                ]);
+            });
+            const csvContent = 'data:text/csv;charset=utf-8,' + rows.map(r => r.join(',')).join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'account_statement_' + new Date().toISOString().split('T')[0] + '.csv');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            this.toast('Statement downloaded successfully.', 'success');
+        } catch (e) {
+            this.toast('Failed to download statement.', 'error');
+        }
+    }
+
     async renderCustTransactions() {
         const el = document.getElementById('cust-main-content');
         el.innerHTML = `<div class="cust-inner"><p class="loading-text"><i class="fa-solid fa-spinner fa-spin"></i></p></div>`;
@@ -628,7 +739,7 @@ class NexaBank {
             el.innerHTML = `<div class="cust-inner">
             <div class="cust-page-header">
                 <div><h1 class="cust-greeting">Transactions</h1><p class="cust-greet-sub">All your transaction history</p></div>
-                <button class="btn-new-txn" onclick="app.openTransferModal()">+ Fund Transfer</button>
+                <div style="display:flex;gap:0.5rem;"><button class="btn-new-txn" onclick="app.exportCustomerStatement()"><i class="fa-solid fa-download"></i> Statement</button><button class="btn-new-txn" onclick="app.openTransferModal()">+ Fund Transfer</button></div>
             </div>
             <div class="cust-card">
                 <div class="cust-card-header"><span class="cust-card-title">All Transactions</span></div>
@@ -754,7 +865,7 @@ class NexaBank {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Transfer failed');
             this.closeModal();
-            alert('✅ Transfer successful!');
+            this.toast('Transfer successful!', 'success');
             this.renderCustDashboard();
         } catch(err) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
     }
@@ -809,7 +920,7 @@ class NexaBank {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Application failed');
             this.closeModal();
-            alert('✅ Loan application submitted!');
+            this.toast('Loan application submitted!', 'success');
             this.renderCustLoans();
         } catch(err) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
     }
@@ -891,7 +1002,7 @@ class NexaBank {
         try {
             await fetch(`${this.api}/investments`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify({ Cust_ID: this.userId, InvestType: document.getElementById('inv-type').value, Amount: document.getElementById('inv-amt').value, DurationMonths: document.getElementById('inv-dur').value }) });
             this.closeModal(); this.renderCustInvestments();
-        } catch(e) { alert('Error: ' + e.message); }
+        } catch(e) { this.toast('Error: ' + e.message, 'error'); }
     }
 
     applyCreditCard() {
@@ -907,7 +1018,7 @@ class NexaBank {
         try {
             await fetch(`${this.api}/credit-cards`, { method: 'POST', headers: this.getHeaders(), body: JSON.stringify({ Cust_ID: this.userId, CardType: document.getElementById('cc-type').value, Income: document.getElementById('cc-inc').value }) });
             this.closeModal(); this.renderCustCreditCards();
-        } catch(e) { alert('Error: ' + e.message); }
+        } catch(e) { this.toast('Error: ' + e.message, 'error'); }
     }
 
     closeModal() {
@@ -1385,7 +1496,7 @@ class NexaBank {
             document.getElementById('kyc-pending').textContent   = this._kycData.filter(c=>c.kycStatus==='PENDING').length;
             document.getElementById('kyc-rejected').textContent  = this._kycData.filter(c=>c.kycStatus==='REJECTED').length;
             this.filterKycTable();
-        } catch(e) { alert('Error updating KYC: ' + e.message); }
+        } catch(e) { this.toast('Error updating KYC: ' + e.message, 'error'); }
     }
 
     showKycDetailModal(custId) {
@@ -1684,7 +1795,7 @@ class NexaBank {
             if (type === 'loan') this.renderEmpLoans();
             if (type === 'cc') this.renderEmpCreditCards();
             if (type === 'inv') this.renderEmpInvestments();
-        } catch(e) { alert(e.message); }
+        } catch(e) { this.toast(e.message, 'error'); }
     }
 
     async renderEmpLoans() {
@@ -1956,10 +2067,10 @@ class NexaBank {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Deletion failed.');
-            alert('Your account has been permanently deleted.');
+            this.toast('Your account has been permanently deleted.', 'error');
             this.logout();
         } catch (err) {
-            alert('Could not delete account: ' + err.message);
+            this.toast('Could not delete account: ' + err.message, 'error');
         }
     }
 }
