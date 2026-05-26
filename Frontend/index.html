@@ -525,6 +525,12 @@
                     <a href="#" class="cust-nav-link" id="cnav-creditcards"
                         onclick="app.loadCustSection('creditcards'); return false;"><i
                             class="fa-regular fa-credit-card"></i> Credit Cards</a>
+                    <a href="#" class="cust-nav-link" id="cnav-investments"
+                        onclick="app.loadCustSection('investments'); return false;"><i
+                            class="fa-solid fa-chart-line"></i> Investments (FD/RD)</a>
+                    <a href="#" class="cust-nav-link" id="cnav-billpay"
+                        onclick="app.openBillPayModal(); return false;"><i
+                            class="fa-solid fa-file-invoice-dollar"></i> Quick Bill Pay</a>
                     <a href="#" class="cust-nav-link" id="cnav-payees"
                         onclick="app.loadCustSection('payees'); return false;"><i
                             class="fa-solid fa-address-book"></i> Payees</a>
@@ -623,6 +629,11 @@
                 </a>
                 <a href="#" class="sidebar-link" id="esnav-audit" onclick="app.loadEmpSection('audit'); return false;">
                     <i class="fa-solid fa-shield-halved"></i><span>Audit Log</span>
+                </a>
+                
+                <div class="sidebar-group">SYSTEM</div>
+                <a href="#" class="sidebar-link" id="esnav-settings" onclick="app.toast('Settings module coming soon!', 'info'); return false;">
+                    <i class="fa-solid fa-gear"></i><span>Settings</span>
                 </a>
                 <a href="#" class="sidebar-link" id="esnav-profile"
                     onclick="app.loadEmpSection('profile'); return false;">

@@ -1613,7 +1613,7 @@ class NexaBank {
                 <div class="emp-stat-box-value" id="stat-txn">—</div>
                 <div class="emp-stat-box-sub" id="stat-txn-sub">Total processed</div>
             </div>
-            <div class="emp-stat-box" style="border-top: 4px solid #dc2626">
+            <div class="emp-stat-box" style="border-top: 4px solid #dc2626; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'" onclick="app.loadEmpSection('transactions'); setTimeout(() => { const f = document.getElementById('txn-status-filter'); if(f) { f.value = 'FLAGGED'; app.filterEmpTransactions(); } }, 100);">
                 <div class="emp-stat-box-title">Flagged Txns</div>
                 <div class="emp-stat-box-value" id="stat-flagged">—</div>
                 <div class="emp-stat-box-sub" style="color:#dc2626"><i class="fa-solid fa-triangle-exclamation"></i> > ₹50,000</div>
