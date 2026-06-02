@@ -185,6 +185,35 @@ async function initDatabase() {
                 Status         ENUM('ACTIVE','MATURED','CANCELLED') DEFAULT 'ACTIVE',
                 CreatedAt      DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (Cust_ID) REFERENCES BANK_CUSTOMER(Cust_ID) ON DELETE CASCADE
+            )`,
+            `CREATE TABLE IF NOT EXISTS BENEFICIARY (
+                Ben_ID INT PRIMARY KEY AUTO_INCREMENT,
+                Cust_ID INT,
+                Ben_Name VARCHAR(100),
+                Ben_Account_No INT,
+                FOREIGN KEY (Cust_ID) REFERENCES BANK_CUSTOMER(Cust_ID) ON DELETE CASCADE
+            )`,
+            `CREATE TABLE IF NOT EXISTS FIXED_DEPOSIT (
+                FD_ID INT PRIMARY KEY AUTO_INCREMENT,
+                Cust_ID INT,
+                Principal DECIMAL(15,2),
+                InterestRate DECIMAL(5,2),
+                TenureMonths INT,
+                StartDate DATE,
+                MaturityDate DATE,
+                MaturityAmount DECIMAL(15,2),
+                Status ENUM('ACTIVE', 'MATURED', 'CLOSED') DEFAULT 'ACTIVE',
+                FOREIGN KEY (Cust_ID) REFERENCES BANK_CUSTOMER(Cust_ID) ON DELETE CASCADE
+            )`,
+            `CREATE TABLE IF NOT EXISTS LOAN_EMI_SCHEDULE (
+                EMI_ID INT PRIMARY KEY AUTO_INCREMENT,
+                LoanID INT,
+                DueDate DATE,
+                EMIAmount DECIMAL(15,2),
+                PrincipalComponent DECIMAL(15,2),
+                InterestComponent DECIMAL(15,2),
+                Status ENUM('PENDING', 'PAID', 'OVERDUE') DEFAULT 'PENDING',
+                FOREIGN KEY (LoanID) REFERENCES LOAN_REQUEST(LoanID) ON DELETE CASCADE
             )`
         ];
 

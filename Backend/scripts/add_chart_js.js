@@ -60,7 +60,7 @@ const chartLogic = `            const acctEl = document.getElementById('d-accts'
                     });
                 }
             }`;
-app = app.replace(/            const acctEl = document\.getElementById\('d-accts'\);[\s\S]*? found\.</p>';/, chartLogic);
+app = app.replace(/            const acctEl = document\.getElementById\('d-accts'\);[\s\S]*? found\.<\/p>';/, chartLogic);
 
 fs.writeFileSync('Frontend/app.js', app);
 console.log('App.js updated with Spending Analytics Chart');

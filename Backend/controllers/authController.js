@@ -56,16 +56,16 @@ exports.login = async (req, res) => {
 
             if (isEmail) {
                 [rows] = await db.query(
-                    `SELECT * FROM BANK_EMPLOYEE WHERE Email = ? LIMIT 1`, [fName]
+                    `SELECT * FROM BANK_EMPLOYEE WHERE Email = ?`, [fName]
                 );
             } else if (isNumeric) {
                 [rows] = await db.query(
-                    `SELECT * FROM BANK_EMPLOYEE WHERE EID = ? OR Name = ? LIMIT 1`,
+                    `SELECT * FROM BANK_EMPLOYEE WHERE EID = ? OR Name = ?`,
                     [parseInt(fName), fName]
                 );
             } else {
                 [rows] = await db.query(
-                    `SELECT * FROM BANK_EMPLOYEE WHERE Name = ? LIMIT 1`, [fName]
+                    `SELECT * FROM BANK_EMPLOYEE WHERE Name = ?`, [fName]
                 );
             }
         } else {
@@ -75,27 +75,45 @@ exports.login = async (req, res) => {
 
             if (isEmail) {
                 [rows] = await db.query(
-                    `SELECT * FROM BANK_CUSTOMER WHERE Email = ? LIMIT 1`, [fName]
+                    `SELECT * FROM BANK_CUSTOMER WHERE Email = ?`, [fName]
                 );
             } else if (isNumeric) {
                 [rows] = await db.query(
-                    `SELECT * FROM BANK_CUSTOMER WHERE Cust_ID = ? OR FName = ? LIMIT 1`,
+                    `SELECT * FROM BANK_CUSTOMER WHERE Cust_ID = ? OR FName = ?`,
                     [parseInt(fName), fName]
                 );
             } else {
                 [rows] = await db.query(
-                    `SELECT * FROM BANK_CUSTOMER WHERE FName = ? LIMIT 1`, [fName]
+                    `SELECT * FROM BANK_CUSTOMER WHERE FName = ?`, [fName]
                 );
             }
         }
 
         if (!rows || !rows.length) return res.status(400).json({ error: 'No account found. Check your email / ID and try again.' });
 
-        const user = rows[0];
-        if (!user.PasswordHash) return res.status(400).json({ error: 'No password set for this account. Please contact admin.' });
+        let validUser = null;
+        let noPasswordCount = 0;
 
-        const isMatch = await bcrypt.compare(password, user.PasswordHash);
-        if (!isMatch) return res.status(400).json({ error: 'Incorrect password.' });
+        for (const u of rows) {
+            if (!u.PasswordHash) {
+                noPasswordCount++;
+                continue;
+            }
+            const isMatch = await bcrypt.compare(password, u.PasswordHash);
+            if (isMatch) {
+                validUser = u;
+                break;
+            }
+        }
+
+        if (!validUser) {
+            if (noPasswordCount === rows.length) {
+                return res.status(400).json({ error: 'No password set for this account (Likely created via Google). Please use Google Login.' });
+            }
+            return res.status(400).json({ error: 'Incorrect password.' });
+        }
+
+        const user = validUser;
 
         const idField  = type === 'employee' ? 'EID' : 'Cust_ID';
         const nameField = type === 'employee' ? 'Name' : 'FName';
