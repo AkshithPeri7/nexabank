@@ -1618,6 +1618,7 @@ class NexaBank {
         
         if (section === 'reports')    this.renderEmpReports();
         if (section === 'audit')      this.renderEmpAudit();
+        if (section === 'settings')   this.renderEmpSettings();
         if (section === 'profile')    this.renderProfile();
     }
 
@@ -2155,6 +2156,43 @@ class NexaBank {
         } catch { document.getElementById('reg-audit-container').innerHTML = `<p class="error-text">Failed to load logs</p>`; }
     }
 
+    async renderEmpSettings() {
+        const el = document.getElementById('emp-main-content');
+        el.innerHTML = `<div class="emp-dash-header" style="margin-bottom:1.5rem">
+            <div><h2 class="emp-dash-title">System Settings</h2><p class="emp-dash-sub">Configure platform preferences and admin options</p></div>
+        </div>
+        <div class="profile-two-col" style="gap: 2rem;">
+            <div class="profile-info-card">
+                <h3 style="margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;"><i class="fa-solid fa-palette"></i> Appearance</h3>
+                <div class="profile-field" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>Toggle Dark / Light Theme</span>
+                    <button class="btn-auth-outline" onclick="app.cycleTheme()"><i class="fa-solid fa-circle-half-stroke"></i> Switch Theme</button>
+                </div>
+                
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;"><i class="fa-solid fa-sliders"></i> Global Variables</h3>
+                <div class="profile-fields">
+                    <div class="profile-field"><label>BASE LOAN RATE (%)</label><input class="profile-input" type="number" value="8.5" step="0.1"></div>
+                    <div class="profile-field"><label>BASE FD RATE (%)</label><input class="profile-input" type="number" value="7.0" step="0.1"></div>
+                </div>
+                <button class="btn-auth-submit" onclick="app.toast('Settings saved successfully.', 'success')" style="margin-top: 1rem;"><i class="fa-solid fa-floppy-disk"></i> Save Configurations</button>
+            </div>
+            
+            <div class="profile-info-card">
+                <h3 style="margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;"><i class="fa-solid fa-lock"></i> Security</h3>
+                <div class="profile-fields">
+                    <div class="profile-field"><label>CURRENT PASSWORD</label><input type="password" class="profile-input" placeholder="••••••••"></div>
+                    <div class="profile-field"><label>NEW PASSWORD</label><input type="password" class="profile-input" placeholder="Min 8 characters"></div>
+                    <div class="profile-field"><label>CONFIRM NEW PASSWORD</label><input type="password" class="profile-input" placeholder="Repeat password"></div>
+                </div>
+                <button class="btn-auth-submit" onclick="app.toast('Password updated successfully.', 'success')" style="margin-top: 1rem;">Change Password</button>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; color: #ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Danger Zone</h3>
+                <p style="color:var(--text3);font-size:0.85rem;margin-bottom:1rem;">Put the platform into maintenance mode (halts all customer transactions).</p>
+                <button class="btn-reject" onclick="if(confirm('Are you sure you want to enable Maintenance Mode?')) app.toast('Maintenance mode enabled.', 'success')"><i class="fa-solid fa-power-off"></i> Enable Maintenance Mode</button>
+            </div>
+        </div>`;
+    }
+
     async renderEmpKyc() {
         const el = document.getElementById('emp-main-content');
         el.innerHTML = `<div class="emp-dash-header" style="margin-bottom:1rem">
@@ -2689,7 +2727,7 @@ class NexaBank {
                     <div class="approval-header">
                         <div>
                             <h3 class="approval-title">LN${String(l.LoanID).padStart(4,'0')} — ${l.CustName || 'Customer'}</h3>
-                            <p class="approval-sub">${l.PickupLocation || 'Personal Loan'} · Submitted: ${l.CreatedAt ? new Date(l.CreatedAt).toLocaleDateString() : 'N/A'}</p>
+                            <p class="approval-sub">${l.PickupLocation || 'Personal Loan'} · Acct: ${l.Account_No || 'N/A'} · Submitted: ${l.CreatedAt ? new Date(l.CreatedAt).toLocaleDateString() : 'N/A'}</p>
                         </div>
                         <div><span class="badge ${statusBadge}">${s}</span></div>
                     </div>

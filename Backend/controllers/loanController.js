@@ -2,7 +2,16 @@ const { db } = require('../config/db');
 
 exports.getAll = async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM LOAN_REQUEST ORDER BY LoanID DESC');
+        const query = `
+            SELECT 
+                L.*, 
+                CONCAT(C.FName, ' ', COALESCE(C.LName, '')) AS CustName,
+                (SELECT Account_No FROM ACCOUNT WHERE CustID = L.Cust_ID LIMIT 1) AS Account_No
+            FROM LOAN_REQUEST L
+            LEFT JOIN BANK_CUSTOMER C ON L.Cust_ID = C.Cust_ID
+            ORDER BY L.LoanID DESC
+        `;
+        const [rows] = await db.query(query);
         res.json(rows);
     } catch (err) {
         console.error('Loan getAll error:', err.message);
@@ -12,7 +21,16 @@ exports.getAll = async (req, res) => {
 
 exports.getById = async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM LOAN_REQUEST WHERE LoanID = ?', [req.params.id]);
+        const query = `
+            SELECT 
+                L.*, 
+                CONCAT(C.FName, ' ', COALESCE(C.LName, '')) AS CustName,
+                (SELECT Account_No FROM ACCOUNT WHERE CustID = L.Cust_ID LIMIT 1) AS Account_No
+            FROM LOAN_REQUEST L
+            LEFT JOIN BANK_CUSTOMER C ON L.Cust_ID = C.Cust_ID
+            WHERE L.LoanID = ?
+        `;
+        const [rows] = await db.query(query, [req.params.id]);
         if (!rows.length) return res.status(404).json({ error: 'Loan not found' });
         res.json(rows[0]);
     } catch (err) {
