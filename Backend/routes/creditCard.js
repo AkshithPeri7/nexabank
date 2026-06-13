@@ -4,7 +4,19 @@ const { db } = require('../config/db');
 
 router.get('/', async (req, res) => {
     try {
-        const [rows] = await db.query('SELECT * FROM CREDIT_CARD_REQUEST ORDER BY CreatedAt DESC');
+        const query = `
+            SELECT 
+                CC.*, 
+                CONCAT(C.FName, ' ', COALESCE(C.LName, '')) AS CustName,
+                C.Email,
+                C.ContactNo,
+                C.TaxID,
+                (SELECT Account_No FROM ACCOUNT WHERE CustID = CC.Cust_ID LIMIT 1) AS Account_No
+            FROM CREDIT_CARD_REQUEST CC
+            LEFT JOIN BANK_CUSTOMER C ON CC.Cust_ID = C.Cust_ID
+            ORDER BY CC.CreatedAt DESC
+        `;
+        const [rows] = await db.query(query);
         res.json(rows);
     } catch(err) { res.status(500).json({ error: err.message }); }
 });

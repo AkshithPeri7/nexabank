@@ -2778,13 +2778,20 @@ class NexaBank {
             const res   = await fetch(`${this.api}/credit-cards`, { headers: this.getHeaders() });
             const cards = await res.json();
             let html = `<h2 class="section-title">Credit Card Approvals</h2><div class="data-wrap"><table>
-                <thead><tr><th>Card ID</th><th>Cust ID</th><th>Type</th><th>Income</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
+                <thead><tr><th>Card ID</th><th>Customer Details</th><th>Account No</th><th>Type</th><th>Income</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
             cards.forEach(c => {
                 const s = c.ApprovalStatus || 'PENDING';
                 const statusBadge = s === 'APPROVED' ? 'badge-green' : s === 'REJECTED' ? 'badge-red' : 'badge-gold';
                 html += `<tr>
                     <td>#${c.CardID}</td>
-                    <td>${c.Cust_ID}</td>
+                    <td>
+                        <div style="font-weight:600">${c.CustName || `CUST${c.Cust_ID}`}</div>
+                        <div style="font-size:0.8rem; color:var(--text3)">
+                            ${c.Email || 'No Email'} • ${c.ContactNo || 'No Phone'}<br>
+                            PAN: ${c.TaxID || 'N/A'}
+                        </div>
+                    </td>
+                    <td>${c.Account_No || 'N/A'}</td>
                     <td>${c.CardType || '—'}</td>
                     <td>₹${this.fmt(c.Income)}</td>
                     <td><span class="badge ${statusBadge}">${s}</span></td>
