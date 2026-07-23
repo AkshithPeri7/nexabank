@@ -1709,7 +1709,7 @@ class NexaBank {
                             <div class="simple-list-item">
                                 <div class="sli-info">
                                     <div class="sli-icon" style="color:#d97706; background:#fef3c7"><i class="fa-solid fa-file-signature"></i></div>
-                                    <div><div class="sli-title">LN${String(l.LoanID).padStart(4,'0')} - ${l.PickupLocation||'Home Loan'}</div><div class="sli-sub">₹${this.fmt(l.Requested_Amount)} · ${l.TenureMonths||12}mo</div></div>
+                                    <div><div class="sli-title">LN${String(l.LoanID).padStart(4,'0')} - ${l.CustName || `Cust #${l.Cust_ID}`}</div><div class="sli-sub">${l.PickupLocation||'Home Loan'} · ₹${this.fmt(l.Requested_Amount)} · ${l.TenureMonths||12}mo</div></div>
                                 </div>
                                 <div class="sli-actions">
                                     <button class="btn-approve" onclick="app.updateApprovalStatus('loan', ${l.LoanID}, 'APPROVED')">✓ Approve</button>
@@ -2685,7 +2685,7 @@ class NexaBank {
                 <div class="approval-card" style="${isApproved ? 'border-left: 4px solid #16a34a;' : isRejected ? 'border-left: 4px solid #dc2626;' : 'border-left: 4px solid #f59e0b;'}">
                     <div class="approval-header">
                         <div>
-                            <h3 class="approval-title">LN${String(l.LoanID).padStart(4,'0')} — ${l.CustName || 'Customer'}</h3>
+                            <h3 class="approval-title">LN${String(l.LoanID).padStart(4,'0')} — ${l.CustName ? l.CustName : `Cust ID: ${l.Cust_ID}`}</h3>
                             <p class="approval-sub">${l.PickupLocation || 'Personal Loan'} · Acct: ${l.Account_No || 'N/A'} · Submitted: ${l.CreatedAt ? new Date(l.CreatedAt).toLocaleDateString() : 'N/A'}</p>
                         </div>
                         <div><span class="badge ${statusBadge}">${s}</span></div>
@@ -2709,9 +2709,9 @@ class NexaBank {
                         ${isPending ? `
                             <button class="btn-approve" onclick="app.updateApprovalStatus('loan', ${l.LoanID}, 'APPROVED')">✓ Approve Loan</button>
                             <button class="btn-reject" onclick="app.updateApprovalStatus('loan', ${l.LoanID}, 'REJECTED')">✖ Reject</button>
-                            <button class="btn-review" onclick="app.showLoanReviewModal(${l.LoanID}, '${(l.CustName||'Customer').replace(/'/g,``)}', '${l.PickupLocation||'Personal'}', ${l.Requested_Amount||0}, ${l.LoanRate||8.5}, ${l.TenureMonths||36}, '${l.CreatedAt||''}')"><i class="fa-solid fa-magnifying-glass"></i> Full Review</button>
+                            <button class="btn-review" onclick="app.showLoanReviewModal(${l.LoanID}, '${(l.CustName ? l.CustName : `Cust ID: ${l.Cust_ID}`).replace(/'/g,``)}', '${l.PickupLocation||'Personal'}', ${l.Requested_Amount||0}, ${l.LoanRate||8.5}, ${l.TenureMonths||36}, '${l.CreatedAt||''}')"><i class="fa-solid fa-magnifying-glass"></i> Full Review</button>
                         ` : `
-                            <button class="btn-review" onclick="app.showLoanReviewModal(${l.LoanID}, '${(l.CustName||'Customer').replace(/'/g,``)}', '${l.PickupLocation||'Personal'}', ${l.Requested_Amount||0}, ${l.LoanRate||8.5}, ${l.TenureMonths||36}, '${l.CreatedAt||''}')"><i class="fa-solid fa-magnifying-glass"></i> Full Review</button>
+                            <button class="btn-review" onclick="app.showLoanReviewModal(${l.LoanID}, '${(l.CustName ? l.CustName : `Cust ID: ${l.Cust_ID}`).replace(/'/g,``)}', '${l.PickupLocation||'Personal'}', ${l.Requested_Amount||0}, ${l.LoanRate||8.5}, ${l.TenureMonths||36}, '${l.CreatedAt||''}')"><i class="fa-solid fa-magnifying-glass"></i> Full Review</button>
                             <button class="btn-review" onclick="app.updateApprovalStatus('loan', ${l.LoanID}, 'PENDING')"><i class="fa-solid fa-rotate-left"></i> Re-Open</button>
                         `}
                     </div>
